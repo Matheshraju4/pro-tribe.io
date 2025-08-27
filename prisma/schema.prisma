@@ -13,3 +13,40 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Trainer {
+  id        String  @id @default(uuid())
+  name      String
+  email     String  @unique
+  mobileNumber String
+  password  String?
+  age       Int?
+  gender    String?
+  // subscription Subscription[]
+  businessDetails BusinessDetails[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Subscription{
+ Active
+ Inactive
+ 
+}
+
+
+model BusinessDetails {
+  id        String  @id @default(uuid())
+  trainerId String
+  businessName String?
+  businessAddress String?
+  businessPhone String?
+  businessEmail String?
+  businessWebsite String?
+  businessDescription String?
+  businessLogo String?
+  businessBanner String?
+  trainer Trainer @relation(fields: [trainerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
