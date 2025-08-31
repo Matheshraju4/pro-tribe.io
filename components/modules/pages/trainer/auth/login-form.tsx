@@ -53,7 +53,7 @@ export default function LoginForm() {
       if (response.status === 200) {
         toast.success("Login successfull!");
 
-        router.push("/trainer/dashboard");
+        router.push("/trainer/sessions");
       } else {
         toast.error("Failed to login. Please try again.");
       }

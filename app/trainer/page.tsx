@@ -1,9 +1,9 @@
-import React from "react";
+import WebsiteConstruction from "@/components/modules/general/website-construction";
 
 const TrainerDashboard = () => {
   return (
     <div>
-      <h1>Trainer Dashboard</h1>
+      <WebsiteConstruction />
     </div>
   );
 };

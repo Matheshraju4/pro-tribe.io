@@ -24,6 +24,7 @@ model Trainer {
   gender    String?
   // subscription Subscription[]
   businessDetails BusinessDetails[]
+  sessions Session[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -49,4 +50,57 @@ model BusinessDetails {
   trainer Trainer @relation(fields: [trainerId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Session{
+  id String @id @default(uuid())
+  sessionName String
+  sessionDescription String?
+  sessionDuration String?
+  sessionLocation String?
+  sessionType SessionType
+  sessionMaxCapacity Int?
+  sessionFrequency SessionFrequency?
+  sessionDateAndTime SessionDateAndTime[]
+  sessionPrice String?
+  bufferTime String?
+  sessionDate DateTime?
+  sessionStartDate DateTime?
+  sessionEndDate DateTime?
+  isActive Boolean @default(true)
+  trainerId String
+  trainer Trainer @relation(fields: [trainerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum SessionType{
+  OneToOne
+  Group
+}
+
+enum SessionFrequency{
+  OneTime
+  Recurring
+}
+
+
+model SessionDateAndTime{
+  id String @id @default(uuid())
+  selectedDay WeekDay
+  startTime String
+  endTime String
+  sessionId String
+  session Session @relation(fields: [sessionId], references: [id])
+ 
+}
+
+enum WeekDay{
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+  Sunday
 }
