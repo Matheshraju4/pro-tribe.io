@@ -1,7 +1,13 @@
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 
 export default function Home() {
-  redirect("/trainer/signup");
-  return <></>;
+  return (
+    <div>
+      <Button>
+        <Link href="/trainer/signup">Sign up</Link>
+      </Button>
+    </div>
+  );
 }
