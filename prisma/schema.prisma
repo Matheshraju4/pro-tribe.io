@@ -13,3 +13,94 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Trainer {
+  id        String  @id @default(uuid())
+  name      String
+  email     String  @unique
+  mobileNumber String
+  password  String?
+  age       Int?
+  gender    String?
+  // subscription Subscription[]
+  businessDetails BusinessDetails[]
+  sessions Session[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Subscription{
+ Active
+ Inactive
+ 
+}
+
+
+model BusinessDetails {
+  id        String  @id @default(uuid())
+  trainerId String
+  businessName String?
+  businessAddress String?
+  businessPhone String?
+  businessEmail String?
+  businessWebsite String?
+  businessDescription String?
+  businessLogo String?
+  businessBanner String?
+  trainer Trainer @relation(fields: [trainerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Session{
+  id String @id @default(uuid())
+  sessionName String
+  sessionDescription String?
+  sessionDuration String?
+  sessionLocation String?
+  sessionType SessionType
+  sessionMaxCapacity Int?
+  sessionFrequency SessionFrequency?
+  sessionDateAndTime SessionDateAndTime[]
+  sessionPrice String?
+  bufferTime String?
+  sessionDate DateTime?
+  sessionStartDate DateTime?
+  sessionEndDate DateTime?
+  isActive Boolean @default(true)
+  trainerId String
+  trainer Trainer @relation(fields: [trainerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum SessionType{
+  OneToOne
+  Group
+}
+
+enum SessionFrequency{
+  OneTime
+  Recurring
+}
+
+
+model SessionDateAndTime{
+  id String @id @default(uuid())
+  selectedDay WeekDay
+  startTime String
+  endTime String
+  sessionId String
+  session Session @relation(fields: [sessionId], references: [id])
+ 
+}
+
+enum WeekDay{
+  Monday
+  Tuesday
+  Wednesday
+  Thursday
+  Friday
+  Saturday
+  Sunday
+}
