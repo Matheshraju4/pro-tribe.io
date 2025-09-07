@@ -38,3 +38,5 @@ export const trainerLoginSchema = z.object({
 export type TrainerLoginInput = z.infer<typeof trainerLoginSchema>;
 
 export const trainerLoginBackendSchema = trainerLoginSchema;
+
+

@@ -1,45 +1,67 @@
-import { verifyToken } from "@/lib/authtoken";
+import { NextRequest, NextResponse } from "next/server";
+
+import { z } from "zod";
 import prisma from "@/lib/prisma";
-import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { createSessionBackendSchema } from "@/lib/schemas/dashboard";
 
-export async function POST(req: Request) {
-  const {
-    sessionName,
-    sessionDescription,
-    sessionDuration,
-    sessionLocation,
-    sessionType,
-    sessionMaxCapacity,
-    sessionFrequency,
-    bufferTime,
-    sessionPrice,
-    sessionValidity,
-    sessionDate,
-    sessionStartDate,
-    sessionEndDate,
-    sessionDateAndTime,
-  } = await req.json();
+export async function POST(req: NextRequest) {
+  try {
+    // Read the request body once and store it
+    const trainerId = "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4";
+    const body = await req.json();
+    console.log("Received Data", body);
 
-  const cookieStore = await cookies();
+    // Use the stored body data for validation
+    const validatedData = createSessionBackendSchema.parse(body);
+    console.log("Validated Data", validatedData);
 
-  console.log("cookie", cookieStore.get("proTribe-authToken")?.value);
-  const trainerId = await verifyToken(
-    cookieStore.get("proTribe-authToken")?.value!
-  );
-  console.log(trainerId);
-  return NextResponse.json(
-    { message: "Session created successfully" },
-    { status: 200 }
-  );
-  //   const session = await prisma.session.create({
-  //     data: {
-  //       sessionName,
-  //       sessionDescription,
+    const response = await prisma.session.create({
+      data: {
+        sessionName: validatedData.sessionName,
+        sessionDescription: validatedData.sessionDescription,
+        sessionDuration: validatedData.sessionDuration,
+        sessionLocation: validatedData.sessionLocation,
+        sessionType: validatedData.sessionType,
+        sessionMaxCapacity: validatedData.sessionMaxCapacity,
+        sessionFrequency: validatedData.sessionFrequency,
+        bufferTime: validatedData.bufferTime,
+        sessionPrice: validatedData.sessionPrice,
+        sessionValidity:
+          validatedData.sessionFrequency === "OneTime"
+            ? validatedData.sessionDate
+            : validatedData.sessionEndDate,
+        sessionDate: validatedData.sessionDate,
+        sessionStartDate: validatedData.sessionStartDate,
+        sessionEndDate: validatedData.sessionEndDate,
+        sessionDateAndTime: {
+          create: validatedData.sessionDateAndTime,
+        },
+        trainerId: trainerId,
+      },
+    });
 
-  //       sessionPrice,
-  //       trainerId: trainerId,
+    console.log("Response", response);
 
-  //     },
-  //   });
+    return NextResponse.json(
+      { message: "Session created successfully", data: validatedData },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error creating session:", error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        {
+          message: "Validation failed",
+          errors: error,
+        },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }

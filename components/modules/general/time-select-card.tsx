@@ -34,7 +34,7 @@ const TimeSelectCard = ({
     <div className="flex justify-between  bg-gray-50 rounded-lg ">
       {/* Day Label - aligned with select fields */}
       <div className="flex gap-4 p-3 max-w-md">
-        <div className="flex items-center min-w-[80px]">
+        <div className="flex items-end min-w-[80px]">
           <span className="text-sm font-medium text-gray-700 bg-white px-3 py-2 rounded-md border h-10 flex items-center">
             {day}
           </span>

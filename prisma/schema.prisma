@@ -59,6 +59,7 @@ model Session{
   sessionDuration String?
   sessionLocation String?
   sessionType SessionType
+  sessionTag Tag[]
   sessionMaxCapacity Int?
   sessionFrequency SessionFrequency?
   sessionDateAndTime SessionDateAndTime[]
@@ -67,9 +68,37 @@ model Session{
   sessionDate DateTime?
   sessionStartDate DateTime?
   sessionEndDate DateTime?
+  sessionValidity DateTime?
   isActive Boolean @default(true)
   trainerId String
   trainer Trainer @relation(fields: [trainerId], references: [id])
+  sessionPackageConnection SessionPackageConnection[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+
+
+
+model Package{
+  id String @id @default(uuid())
+  packageName String
+  packageDescription String?
+  packagePrice String?
+  packageDiscount String?
+  validDays String?
+  sessionPackageConnection SessionPackageConnection[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SessionPackageConnection{
+  id String @id @default(uuid())
+  packageId String
+  package Package @relation(fields: [packageId], references: [id])
+  sessionId String
+  session Session @relation(fields: [sessionId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -84,6 +113,14 @@ enum SessionFrequency{
   Recurring
 }
 
+model Tag{
+  id String @id @default(uuid())
+  tag String
+  sessionId String
+  session Session @relation(fields: [sessionId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
 
 model SessionDateAndTime{
   id String @id @default(uuid())
