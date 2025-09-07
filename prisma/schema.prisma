@@ -103,6 +103,38 @@ model SessionPackageConnection{
   updatedAt DateTime @updatedAt
 }
 
+
+model Appointment{
+  id String @id @default(uuid())
+  appointmentName String
+  appointmentDescription String?
+  appointmentDate DateTime?
+  appointmentPrice String?
+  location String?
+  meetingUrl String?
+  startTime String?
+  endTime String?
+  appointpaidStatus AppointpaidStatus
+  status AppointmentStatus
+  appointmentLocation String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+enum AppointpaidStatus{
+  Paid
+  Unpaid
+}
+
+enum AppointmentStatus{
+  Scheduled
+  Cancelled
+  Completed
+ 
+}
+
 enum SessionType{
   OneToOne
   Group
