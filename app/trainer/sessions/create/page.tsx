@@ -29,64 +29,16 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, ControllerRenderProps, useWatch } from "react-hook-form";
+import { useForm, ControllerRenderProps } from "react-hook-form";
 import { z } from "zod";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import TimeSelectCard from "@/components/modules/general/time-select-card";
 import { Label } from "@/components/ui/label";
 import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-
-const createSessionFormSchema = z
-  .object({
-    sessionName: z.string().min(1, "Session name is required"),
-    sessionDescription: z.string().min(1, "Session description is required"),
-    sessionDuration: z.string().min(1, "Session duration is required"),
-    sessionLocation: z.string().min(1, "Session location is required"),
-    sessionType: z.enum(["OneToOne", "Group"]),
-    sessionMaxCapacity: z.number().min(1, "Session max capacity is required"),
-    sessionFrequency: z.enum(["OneTime", "Recurring"]),
-    bufferTime: z.string().min(1, "Buffer time is required"),
-    sessionPrice: z.string().min(1, "Session price is required"),
-    sessionValidity: z.date().min(new Date(), "Session validity is required"),
-
-    // Make dates conditional based on frequency
-    sessionDate: z.date().optional(), // For OneTime
-    sessionStartDate: z.date().optional(), // For Recurring
-    sessionEndDate: z.date().optional(), // For Recurring
-
-    sessionDateAndTime: z.array(
-      z.object({
-        selectedDay: z.enum([
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-          "Sunday",
-        ]),
-        startTime: z.string().min(1, "Start time is required"),
-        endTime: z.string().min(1, "End time is required"),
-      })
-    ),
-  })
-  .refine(
-    (data) => {
-      // Custom validation: ensure appropriate dates are set based on frequency
-      if (data.sessionFrequency === "OneTime") {
-        return data.sessionDate != null;
-      } else {
-        return data.sessionStartDate != null && data.sessionEndDate != null;
-      }
-    },
-    {
-      message: "Please provide appropriate dates for the selected frequency",
-      path: ["sessionDate", "sessionStartDate", "sessionEndDate"],
-    }
-  );
+import { createSessionFormSchema } from "@/lib/schemas/dashboard";
 
 type CreateSessionForm = z.infer<typeof createSessionFormSchema>;
 
@@ -94,6 +46,7 @@ export default function CreateSessionPage() {
   const router = useRouter();
   const form = useForm<CreateSessionForm>({
     resolver: zodResolver(createSessionFormSchema),
+    mode: "onBlur", // Only validate on blur, not on every keystroke
     defaultValues: {
       sessionName: "",
       sessionDescription: "",
@@ -108,7 +61,6 @@ export default function CreateSessionPage() {
       sessionDate: new Date(),
       sessionStartDate: new Date(),
       sessionEndDate: new Date(),
-
       sessionDateAndTime: [
         {
           selectedDay: "Monday",
@@ -119,67 +71,44 @@ export default function CreateSessionPage() {
     },
   });
 
-  const onSubmit = async (data: CreateSessionForm) => {
-    console.log("Form data being submitted:", data);
-    console.log("Validation result:", createSessionFormSchema.safeParse(data));
+  // Use watch only for specific fields that need to trigger conditional rendering
+  const sessionType = form.watch("sessionType");
+  const sessionFrequency = form.watch("sessionFrequency");
 
-    if (createSessionFormSchema.safeParse(data).success) {
-      const response = await axios.post(
-        "/api/auth/trainer/session/create",
-        data
-      );
-      response.status === 200
-        ? toast.success("Session created successfully")
-        : toast.error("Failed to create session");
-      router.push("/trainer/sessions");
-      // TODO: call your API here
-    } else {
+  const onSubmit = useCallback(
+    async (data: CreateSessionForm) => {
+      console.log("Form data being submitted:", data);
       console.log(
-        "Validation failed:",
-        createSessionFormSchema.safeParse(data).error
+        "Validation result:",
+        createSessionFormSchema.safeParse(data)
       );
-    }
-  };
-  const formData = useWatch({
-    control: form.control,
-  });
-  const {
-    sessionType,
-    sessionMaxCapacity,
-    sessionFrequency,
-    sessionStartDate,
-    sessionEndDate,
-    sessionDate,
-    sessionPrice,
-    sessionDuration,
-    sessionLocation,
-    sessionDescription,
-    sessionName,
-    bufferTime,
-    sessionDateAndTime,
-  } = formData;
 
-  console.log("start date", sessionStartDate);
-  console.log("end date", sessionEndDate);
-  console.log("session date", sessionDate);
-
-  useEffect(() => {
-    if (sessionFrequency === "OneTime") {
-      // Reset end date for one-time sessions
-      form.setValue("sessionDate", new Date());
-    } else if (sessionFrequency === "Recurring") {
-      // Ensure both dates are set for recurring sessions
-      if (!form.getValues("sessionStartDate")) {
-        form.setValue("sessionStartDate", new Date());
+      if (createSessionFormSchema.safeParse(data).success) {
+        try {
+          const response = await axios.post(
+            "/api/auth/trainer/session/create",
+            data
+          );
+          response.status === 200
+            ? toast.success("Session created successfully")
+            : toast.error("Failed to create session");
+          // router.push("/trainer/sessions");
+        } catch (error) {
+          toast.error("Failed to create session");
+          console.error("Error creating session:", error);
+        }
+      } else {
+        console.log(
+          "Validation failed:",
+          createSessionFormSchema.safeParse(data).error
+        );
       }
-      if (!form.getValues("sessionEndDate")) {
-        form.setValue("sessionEndDate", new Date());
-      }
-    }
-  }, [sessionFrequency, form]);
+    },
+    [router]
+  );
 
-  // helper to format Date -> yyyy-MM-dd for input[type=date]
-  const toDateInput = (d?: Date | null) => {
+  // Memoize the date input helper to prevent recreation on every render
+  const toDateInput = useCallback((d?: Date | null) => {
     if (!d) return "";
 
     // Check if it's a valid date
@@ -192,14 +121,20 @@ export default function CreateSessionPage() {
     }
 
     return "";
-  };
+  }, []);
 
-  const timeOptions = Array.from({ length: 24 }, (_, i) => {
-    const hours = String(i).padStart(2, "0");
-    return `${hours}:00`;
-  });
+  // Memoize time options to prevent recreation on every render
+  const timeOptions = useMemo(
+    () =>
+      Array.from({ length: 24 }, (_, i) => {
+        const hours = String(i).padStart(2, "0");
+        return `${hours}:00`;
+      }),
+    []
+  );
 
-  const sortDaysInOrder = (days: string[]) => {
+  // Memoize days sorting function
+  const sortDaysInOrder = useCallback((days: string[]) => {
     const dayOrder = [
       "Sunday",
       "Monday",
@@ -210,36 +145,118 @@ export default function CreateSessionPage() {
       "Saturday",
     ];
     return days.sort((a, b) => dayOrder.indexOf(a) - dayOrder.indexOf(b));
-  };
+  }, []);
 
-  const daysOfWeek = [
-    { label: "Sunday", value: "Sunday" },
-    { label: "Monday", value: "Monday" },
-    { label: "Tuesday", value: "Tuesday" },
-    { label: "Wednesday", value: "Wednesday" },
-    { label: "Thursday", value: "Thursday" },
-    { label: "Friday", value: "Friday" },
-    { label: "Saturday", value: "Saturday" },
-  ];
+  // Memoize days of week array
+  const daysOfWeek = useMemo(
+    () => [
+      { label: "Sunday", value: "Sunday" },
+      { label: "Monday", value: "Monday" },
+      { label: "Tuesday", value: "Tuesday" },
+      { label: "Wednesday", value: "Wednesday" },
+      { label: "Thursday", value: "Thursday" },
+      { label: "Friday", value: "Friday" },
+      { label: "Saturday", value: "Saturday" },
+    ],
+    []
+  );
 
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
 
+  // Optimize selected days update with useCallback
+  const handleDayToggle = useCallback((dayValue: string, checked: boolean) => {
+    setSelectedDays((prev) =>
+      checked ? [...prev, dayValue] : prev.filter((d) => d !== dayValue)
+    );
+  }, []);
+
+  // Only run effect when sessionFrequency changes
+  useEffect(() => {
+    if (sessionFrequency === "OneTime") {
+      form.setValue("sessionDate", new Date());
+    } else if (sessionFrequency === "Recurring") {
+      const currentStartDate = form.getValues("sessionStartDate");
+      const currentEndDate = form.getValues("sessionEndDate");
+
+      if (!currentStartDate) {
+        form.setValue("sessionStartDate", new Date());
+      }
+      if (!currentEndDate) {
+        form.setValue("sessionEndDate", new Date());
+      }
+    }
+  }, [sessionFrequency, form]);
+
+  // Memoize the time slot change handlers
+  const handleTimeChange = useCallback(
+    (index: number, field: "startTime" | "endTime", time: string) => {
+      form.setValue(`sessionDateAndTime.${index}.${field}`, time);
+      // Trigger form re-render by touching the field
+      form.trigger(`sessionDateAndTime.${index}.${field}`);
+    },
+    [form]
+  );
+
+  type WeekDay =
+    | "Monday"
+    | "Tuesday"
+    | "Wednesday"
+    | "Thursday"
+    | "Friday"
+    | "Saturday"
+    | "Sunday";
+
+  // Add this effect to sync selectedDays with form state
+  useEffect(() => {
+    if (selectedDays.length > 0) {
+      const currentSessionDateAndTime =
+        form.getValues("sessionDateAndTime") || [];
+      const updatedSessionDateAndTime = selectedDays.map((day, index) => {
+        const existingData = currentSessionDateAndTime[index] || {
+          selectedDay: day as WeekDay,
+          startTime: "",
+          endTime: "",
+        };
+        return {
+          ...existingData,
+          selectedDay: day as WeekDay,
+        };
+      });
+
+      form.setValue("sessionDateAndTime", updatedSessionDateAndTime);
+    }
+  }, [selectedDays, form]);
+
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-6">
-      <Card className="w-full max-w-5xl ">
-        <CardHeader>
-          <CardTitle>Create a new session</CardTitle>
-          <CardDescription>
-            Provide the details below to create a session
-          </CardDescription>
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-3 sm:p-6">
+      <Card className="w-full max-w-5xl">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 w-full">
+          <div className="flex flex-col gap-2">
+            <CardTitle className="text-xl sm:text-2xl">
+              Create a new session
+            </CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              Provide the details below to create a session
+            </CardDescription>
+          </div>
+          <div className="w-full sm:w-auto">
+            <Select>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Select Session Tag" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Session Tag 1</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
-              className="space-y-6 flex flex-col gap-6 "
+              className="space-y-4 sm:space-y-6 flex flex-col gap-4 sm:gap-6"
             >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <FormField
                   control={form.control}
                   name="sessionName"
@@ -289,7 +306,7 @@ export default function CreateSessionPage() {
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <FormField
                   control={form.control}
                   name="sessionDuration"
@@ -318,8 +335,8 @@ export default function CreateSessionPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1  gap-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   <FormField
                     control={form.control}
                     name="sessionType"
@@ -330,7 +347,7 @@ export default function CreateSessionPage() {
                           <RadioGroup
                             value={field.value}
                             onValueChange={field.onChange}
-                            className="grid grid-cols-2 gap-3"
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-3"
                           >
                             <div className="flex items-center space-x-2 rounded-md border p-3">
                               <RadioGroupItem id="type-1to1" value="OneToOne" />
@@ -390,18 +407,18 @@ export default function CreateSessionPage() {
                     />
                   )}
                 </div>
-                <div className="flex flex-col gap-6">
+                <div className="flex flex-col gap-4 sm:gap-6">
                   <FormField
                     control={form.control}
                     name="sessionFrequency"
                     render={({ field }) => (
-                      <FormItem className="max-w-md">
+                      <FormItem className="w-full sm:max-w-md">
                         <FormLabel>Frequency</FormLabel>
                         <FormControl>
                           <RadioGroup
                             value={field.value}
                             onValueChange={field.onChange}
-                            className="grid grid-cols-2 gap-3"
+                            className="grid grid-cols-1 sm:grid-cols-2 gap-3"
                           >
                             <div className="flex items-center space-x-2 rounded-md border p-3">
                               <RadioGroupItem
@@ -434,13 +451,13 @@ export default function CreateSessionPage() {
                     )}
                   />
                   {sessionFrequency === "Recurring" ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                       {/* Date Range Section */}
-                      <div className="bg-gray-50 p-6 rounded-lg border">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <div className="bg-gray-50 p-4 sm:p-6 rounded-lg border">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                           Session Date Range
                         </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                           <FormField
                             control={form.control}
                             name="sessionStartDate"
@@ -490,38 +507,27 @@ export default function CreateSessionPage() {
                       </div>
 
                       {/* Days Selection Section */}
-                      <div className="bg-gray-50 p-6 rounded-lg border">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <div className="bg-gray-50 p-4 sm:p-6 rounded-lg border">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
                           Select Days of the Week
                         </h3>
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
                           {daysOfWeek.map((day) => (
                             <div
                               key={day.value}
-                              className="flex items-center space-x-3 p-3 rounded-lg border-2 transition-all duration-200 hover:border-primary/50"
+                              className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg border-2 transition-all duration-200 hover:border-primary/50"
                             >
                               <Checkbox
                                 id={day.value}
                                 checked={selectedDays.includes(day.value)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setSelectedDays([
-                                      ...selectedDays,
-                                      day.value,
-                                    ]);
-                                  } else {
-                                    setSelectedDays(
-                                      selectedDays.filter(
-                                        (d) => d !== day.value
-                                      )
-                                    );
-                                  }
-                                }}
+                                onCheckedChange={(checked) =>
+                                  handleDayToggle(day.value, checked as boolean)
+                                }
                                 className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                               />
                               <label
                                 htmlFor={day.value}
-                                className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+                                className="text-xs sm:text-sm font-medium text-gray-700 cursor-pointer select-none"
                               >
                                 {day.label}
                               </label>
@@ -532,9 +538,9 @@ export default function CreateSessionPage() {
 
                       {/* Time Slots Section */}
                       {selectedDays.length > 0 && (
-                        <div className="bg-gray-50 p-6 rounded-lg border">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-gray-900">
+                        <div className="bg-gray-50 p-4 sm:p-6 rounded-lg border">
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                            <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                               Set Time Slots
                             </h3>
                             <span className="text-sm text-gray-500">
@@ -550,26 +556,20 @@ export default function CreateSessionPage() {
                                   key={day}
                                   day={day}
                                   startTime={
-                                    (form.getValues(
+                                    form.watch(
                                       `sessionDateAndTime.${index}.startTime`
-                                    ) as string) || ""
+                                    ) || ""
                                   }
                                   endTime={
-                                    (form.getValues(
+                                    form.watch(
                                       `sessionDateAndTime.${index}.endTime`
-                                    ) as string) || ""
+                                    ) || ""
                                   }
                                   onStartTimeChange={(time) =>
-                                    form.setValue(
-                                      `sessionDateAndTime.${index}.startTime`,
-                                      time
-                                    )
+                                    handleTimeChange(index, "startTime", time)
                                   }
                                   onEndTimeChange={(time) =>
-                                    form.setValue(
-                                      `sessionDateAndTime.${index}.endTime`,
-                                      time
-                                    )
+                                    handleTimeChange(index, "endTime", time)
                                   }
                                 />
                               )
@@ -580,10 +580,10 @@ export default function CreateSessionPage() {
 
                       {/* No Days Selected Message */}
                       {selectedDays.length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
-                          <div className="w-16 h-16 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                        <div className="text-center py-6 sm:py-8 text-gray-500">
+                          <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
                             <svg
-                              className="w-8 h-8 text-gray-400"
+                              className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -603,12 +603,12 @@ export default function CreateSessionPage() {
                       )}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2  gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                       <FormField
                         control={form.control}
                         name="sessionDate"
                         render={({ field }) => (
-                          <FormItem className="max-w-xs">
+                          <FormItem className="w-full sm:max-w-xs">
                             <FormLabel>Session Date</FormLabel>
                             <FormControl>
                               <Input
@@ -635,7 +635,7 @@ export default function CreateSessionPage() {
                                 {field.value?.map((item, index) => (
                                   <div
                                     key={index}
-                                    className="flex items-center gap-4"
+                                    className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4"
                                   >
                                     <FormField
                                       control={form.control}
@@ -709,7 +709,7 @@ export default function CreateSessionPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 <FormField
                   control={form.control}
                   name="sessionPrice"
@@ -729,15 +729,21 @@ export default function CreateSessionPage() {
                 />
               </div>
 
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => form.reset()}
+                  className="w-full sm:w-auto order-2 sm:order-1"
                 >
                   Reset
                 </Button>
-                <Button type="submit">Create Session</Button>
+                <Button
+                  type="submit"
+                  className="w-full sm:w-auto order-1 sm:order-2"
+                >
+                  Create Session
+                </Button>
               </div>
             </form>
           </Form>
