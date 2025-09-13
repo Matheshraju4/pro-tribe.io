@@ -40,6 +40,10 @@ import {
 import { useWatch } from "react-hook-form";
 import Preview from "./preview-page";
 import { useRouter } from "next/navigation";
+import {
+  UploadButton,
+  UploadDropzone,
+} from "@/components/modules/general/uploadthing";
 
 type PublicPageFormValues = z.infer<typeof createPublicPageFormSchema>;
 
@@ -228,20 +232,19 @@ export default function CreationForm({
                         <FormControl>
                           <div className="space-y-4">
                             <div className="relative">
-                              <Image className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                              <Input
-                                className="pl-9"
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const url = URL.createObjectURL(file);
-                                    setLogoPreview(url);
-                                    field.onChange(url);
-                                  }
-                                }}
-                              />
+                              {!(logoPreview && field.value) && (
+                                <UploadDropzone
+                                  endpoint="imageUploader"
+                                  onClientUploadComplete={(res) => {
+                                    field.onChange(res?.[0]?.ufsUrl);
+                                    setLogoPreview(res?.[0]?.ufsUrl);
+                                  }}
+                                  onUploadError={(error: Error) => {
+                                    console.log(error);
+                                    toast.error("Error uploading logo");
+                                  }}
+                                />
+                              )}
                             </div>
                             {logoPreview && (
                               <div className="relative">
@@ -285,20 +288,19 @@ export default function CreationForm({
                         <FormControl>
                           <div className="space-y-4">
                             <div className="relative">
-                              <Image className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                              <Input
-                                className="pl-9"
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    const url = URL.createObjectURL(file);
-                                    setBannerPreview(url);
-                                    field.onChange(url);
-                                  }
-                                }}
-                              />
+                              {!(bannerPreview && field.value) && (
+                                <UploadDropzone
+                                  endpoint="imageUploader"
+                                  onClientUploadComplete={(res) => {
+                                    field.onChange(res?.[0]?.ufsUrl);
+                                    setBannerPreview(res?.[0]?.ufsUrl);
+                                  }}
+                                  onUploadError={(error: Error) => {
+                                    console.log(error);
+                                    toast.error("Error uploading banner");
+                                  }}
+                                />
+                              )}
                             </div>
                             {bannerPreview && (
                               <div className="relative">
@@ -604,7 +606,7 @@ export default function CreationForm({
       </Card>
 
       <div className="lg:w-[450px] xl:w-[500px]">
-        <Preview control={form.control} operation="create" />
+        <Preview control={form.control} operation="create" urlVisible={true} />
       </div>
     </div>
   );

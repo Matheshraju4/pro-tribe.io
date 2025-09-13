@@ -38,9 +38,11 @@ function calculateCompletionPercentage(formData: any) {
 export default function Preview({
   control,
   operation,
+  urlVisible,
 }: {
   control: any;
   operation: "preview" | "create";
+  urlVisible: boolean;
 }) {
   // Move useWatch outside useEffect
   const watchedFormData = operation === "create" ? useWatch({ control }) : null;
@@ -75,21 +77,23 @@ export default function Preview({
       )}
     >
       {/* Update the header styling */}
-      <div className="w-full h-10 bg-gray-100 flex items-center px-4 gap-2 border-b">
-        <div className="flex gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-red-400" />
-          <div className="w-3 h-3 rounded-full bg-yellow-400" />
-          <div className="w-3 h-3 rounded-full bg-green-400" />
-        </div>
-        <div className="flex-1 flex justify-center">
-          <div className="text-sm text-gray-600 flex items-center gap-2 px-4 py-1 bg-white rounded-md border">
-            <Globe className="w-4 h-4" />
-            {formData.uniqueUrl
-              ? `protribe.com/${formData.uniqueUrl}`
-              : `${formData.CustomWebsiteUrl}`}
+      {urlVisible && (
+        <div className="w-full h-10 bg-gray-100 flex items-center px-4 gap-2 border-b">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-400" />
+            <div className="w-3 h-3 rounded-full bg-yellow-400" />
+            <div className="w-3 h-3 rounded-full bg-green-400" />
+          </div>
+          <div className="flex-1 flex justify-center">
+            <div className="text-sm text-gray-600 flex items-center gap-2 px-4 py-1 bg-white rounded-md border">
+              <Globe className="w-4 h-4" />
+              {formData.uniqueUrl
+                ? `protribe.com/${formData.uniqueUrl}`
+                : `${formData.CustomWebsiteUrl}`}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <CardContent className="p-0">
         {/* Update banner section height */}

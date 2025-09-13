@@ -36,7 +36,7 @@ const PublicPage = () => {
               Preview Page <Globe className="ml-2 h-4 w-4" />
             </Button>
           </div>
-          <PreviewPage control={data} operation={"preview"} />
+          <PreviewPage control={data} operation={"preview"} urlVisible={true} />
         </div>
       ) : (
         <CreationForm mode={mode || "create"} initialData={data} />

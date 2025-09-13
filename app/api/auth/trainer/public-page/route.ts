@@ -61,7 +61,7 @@ export async function PUT(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = { user: { id: "d8f1b" } };
+    const session = { user: { id: "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4" } };
 
     const data = await prisma.publicPage.findUnique({
       where: {

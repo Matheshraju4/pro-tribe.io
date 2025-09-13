@@ -43,7 +43,7 @@ model PublicPage {
   HappyClients             String?
   BusinessDescription      String?
   Programs                 String?
-  uniqueUrl                String
+  uniqueUrl                String  @unique
   BusinessEmail            String?
   BusinessPhone            String?
   CustomWebsiteUrl         String?
