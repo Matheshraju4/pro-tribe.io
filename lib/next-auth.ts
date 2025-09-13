@@ -1,55 +1,48 @@
-import NextAuth from "next-auth";
-import Google from "next-auth/providers/google";
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID!;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!;
+const GOOGLE_OAUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
+const GOOGLE_REDIRECT_URI = "http://localhost:3000/api/auth/callback/google";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
+export async function getGoogleOAuthUrl() {
+  const url = new URL(GOOGLE_OAUTH_URL);
+  url.searchParams.set("client_id", GOOGLE_CLIENT_ID);
+  url.searchParams.set("redirect_uri", GOOGLE_REDIRECT_URI);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", "email profile");
 
-  session: { strategy: "jwt" },
+  return url.toString();
+}
 
-  cookies: {
-    sessionToken: {
-      name: "proTribe-authToken",
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
+export async function fetchUserInfo(code: string) {
+  try {
+    const response = await fetch(`https://oauth2.googleapis.com/token`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
       },
-    },
-  },
+      body: new URLSearchParams({
+        code,
+        redirect_uri: GOOGLE_REDIRECT_URI,
+        grant_type: "authorization_code",
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+      }),
+    });
 
-  callbacks: {
-    async jwt({ token, account, profile }) {
-      console.log("jwt", token, account, profile);
-      if (account) token.provider = account.provider;
-      if (profile && "email" in profile) token.email = profile.email as string;
-      return token;
-    },
-    async session({ session, token }) {
-      console.log("session", session, token);
-      if (token.email) {
-        session.user = {
-          ...session.user,
-          email: token.email,
-        };
-      }
-      return session;
-    },
-    async redirect({ url, baseUrl }) {
-      // If NextAuth asks to go to baseUrl again, send them to a stable page
-      if (url === baseUrl) return `${baseUrl}/trainer/dashboard`;
+    const data = await response.json();
 
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      try {
-        const target = new URL(url);
-        if (target.origin === baseUrl) return url;
-      } catch {}
-      return `${baseUrl}/trainer/dashboard`;
-    },
-  },
-});
+    console.log("Received Response", data);
+
+    if (!response.ok) {
+      throw new Error(data.error_description || "Failed to fetch access token");
+    }
+
+    return {
+      access_token: data.access_token,
+    };
+  } catch (error) {
+    console.error("Error fetching user info:", error);
+    throw error;
+  }
+}
