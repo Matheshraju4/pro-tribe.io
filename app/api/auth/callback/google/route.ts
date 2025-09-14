@@ -1,4 +1,6 @@
+import { generateToken } from "@/lib/authtoken";
 import { fetchUserInfo } from "@/lib/next-auth";
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 // Define the type for Google user info
@@ -24,7 +26,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    console.log("Code", code);
     const userInfo = await fetchUserInfo(code);
+    console.log("User Info", userInfo);
 
     const userDataResponse = await fetch(
       "https://www.googleapis.com/oauth2/v2/userinfo",
@@ -40,13 +44,40 @@ export async function GET(request: NextRequest) {
     }
 
     const userData: GoogleUserInfo = await userDataResponse.json();
-    console.log("User Details", userData);
 
-    // Return both the access token and user data
-    return NextResponse.json({
-      access_token: userInfo.access_token,
-      user: userData,
+    const trainer = await prisma.trainer.findUnique({
+      where: {
+        email: userData.email,
+      },
     });
+    if (!trainer) {
+      return NextResponse.redirect(
+        new URL("/trainer/auth/signup", process.env.APPLICATION_BASIC_URL)
+      );
+    }
+
+    const authToken = await generateToken(
+      {
+        role: "Trainer",
+        email: trainer.email,
+      },
+      "7d"
+    );
+    const response = NextResponse.json(
+      { message: "Login successful" },
+      { status: 200 }
+    );
+
+    // Set the cookie on the response
+    response.cookies.set("proTribe-authToken", authToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60,
+      path: "/",
+    });
+
+    return response;
   } catch (error) {
     console.error("OAuth callback error:", error);
     return NextResponse.json(
