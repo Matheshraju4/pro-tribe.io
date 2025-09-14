@@ -9,10 +9,13 @@ import Image from "next/image";
 export async function generateMetadata({
   params,
 }: {
-  params: { publicpage: string };
+  params: Promise<{ publicpage: string[] }>;
 }) {
+  const { publicpage } = await params;
+  const slug = publicpage[0];
+
   const data = await prisma.publicPage.findUnique({
-    where: { uniqueUrl: params.publicpage[0] },
+    where: { uniqueUrl: slug },
     select: {
       BusinessName: true,
       BusinessDescription: true,

@@ -30,6 +30,7 @@ import {
 import { trainerLoginSchema } from "@/lib/schemas/auth";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { getGoogleOAuthUrlClient } from "@/lib/oauth-client";
 
 export default function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +66,11 @@ export default function LoginForm() {
     }
   }
 
+  async function handleGoogleLogin() {
+    const url = getGoogleOAuthUrlClient();
+    router.push(url);
+  }
+
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       {/* Left Section - Login Form */}
@@ -96,6 +102,7 @@ export default function LoginForm() {
               <Button
                 variant="outline"
                 className="w-full h-11 sm:h-12 border-gray-300 hover:bg-gray-50 text-sm sm:text-base"
+                onClick={handleGoogleLogin}
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-2" viewBox="0 0 24 24">
                   <path

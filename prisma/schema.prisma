@@ -26,6 +26,7 @@ model Trainer {
   publicPage      PublicPage?
   businessDetails BusinessDetails[]
   sessions        Session[]
+  clients         Client[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 }
@@ -188,4 +189,26 @@ enum WeekDay {
   Friday
   Saturday
   Sunday
+}
+
+model Client {
+  id            String    @id @default(uuid())
+  firstName     String
+  lastName      String
+  email         String    @unique
+  phone         String?
+  company       String?
+  address       String?
+  city          String?
+  postcode      String?
+  country       String?
+  status        String    // prospect, active, inactive
+  source        String?
+  followUpDate  DateTime?
+  notes         String?
+  tags          String[]
+  trainerId     String
+  trainer       Trainer   @relation(fields: [trainerId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
