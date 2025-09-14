@@ -107,3 +107,26 @@ export const createSessionBackendSchema = z
       path: ["sessionDate", "sessionStartDate", "sessionEndDate"],
     }
   );
+
+
+
+  export const createPublicPageFormSchema = z.object({
+    BusinessLogo: z.string().optional(),
+    BusinessBanner: z.string().optional(),
+    BusinessName: z.string().min(1, "Business name is required"),
+    BusinessShortDescription: z.string().optional(),
+    BannerHeading: z.string().optional(),
+    BannerSubHeading: z.string().optional(),
+    YearsOfExperience: z.string().optional(),
+    HappyClients: z.string().optional(),
+    BusinessDescription: z.string().optional(),
+    Programs: z.string().optional(),
+    uniqueUrl: z.string().min(1, "Unique URL is required"),
+    BusinessEmail: z.string().optional(),
+    BusinessPhone: z.string().optional(),
+    CustomWebsiteUrl: z.string().optional(),
+    BusinessAddress: z.string().optional(),
+    BusinessCity: z.string().optional(),
+  });
+
+ 
