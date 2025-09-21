@@ -1,6 +1,7 @@
-// app/trainer/clients/page.tsx
-import ClientForm from "@/components/modules/pages/trainer/clients/client-form";
+"use client";
 
-export default function AddClientPage() {
-  return <ClientForm />;
+import ClientsDashboard from "@/components/modules/pages/trainer/clients/clients-dashboard";
+
+export default function ClientsPage() {
+  return <ClientsDashboard />;
 }
