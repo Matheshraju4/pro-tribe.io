@@ -27,6 +27,7 @@ model Trainer {
   businessDetails BusinessDetails[]
   sessions        Session[]
   clients         Client[]
+  progressTrackers ProgressTracker[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 }
@@ -205,6 +206,87 @@ model Client {
   tags          String[]
   trainerId     String
   trainer       Trainer   @relation(fields: [trainerId], references: [id])
+  clientProgress ClientProgress[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+}
+
+model ProgressTracker {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  type          String    // "numeric", "boolean", "rating"
+  
+  // Numeric tracker fields
+  unit          String?
+  minValue      Float?
+  maxValue      Float?
+  
+  // Boolean tracker fields
+  trueLabel     String?   @default("Yes")
+  falseLabel    String?   @default("No")
+  
+  // Rating tracker fields
+  ratingScale   Int?      @default(5)
+  
+  // Configuration stored as JSON for flexibility
+  configuration Json?
+  
+  // Relationships
+  trainerId     String
+  trainer       Trainer   @relation(fields: [trainerId], references: [id])
+  
+  // Many-to-many relationship with clients through junction table
+  clientProgress ClientProgress[]
+  
+  // Metadata
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model ClientProgress {
+  id                String    @id @default(uuid())
+  
+  // Relationships
+  trackerId         String
+  tracker           ProgressTracker @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  
+  clientId          String
+  client            Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  // Progress entries for this specific client-tracker combination
+  entries           ProgressEntry[]
+  
+  // Assignment metadata
+  assignedAt        DateTime  @default(now())
+  isActive          Boolean   @default(true)
+  
+  // Ensure unique client-tracker combinations
+  @@unique([trackerId, clientId])
+  @@index([clientId])
+  @@index([trackerId])
+}
+
+model ProgressEntry {
+  id                String    @id @default(uuid())
+  
+  // Progress data - stored as JSON to handle different types
+  value             Json      // Can be number, boolean, or string based on tracker type
+  
+  // Optional text note
+  note              String?
+  
+  // Relationships
+  clientProgressId  String
+  clientProgress    ClientProgress @relation(fields: [clientProgressId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  entryDate         DateTime  @default(now())
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  // Indexes for better query performance
+  @@index([clientProgressId, entryDate])
+  @@index([entryDate])
 }
