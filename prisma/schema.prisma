@@ -202,10 +202,6 @@ model Client {
   city          String?
   postcode      String?
   country       String?
-  status        String    // prospect, active, inactive
-  source        String?
-  followUpDate  DateTime?
-  notes         String?
   tags          String[]
   trainerId     String
   trainer       Trainer   @relation(fields: [trainerId], references: [id])
