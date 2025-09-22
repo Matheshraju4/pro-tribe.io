@@ -1,20 +1,13 @@
-import SessionDashboard from "@/components/modules/pages/trainer/sessions/session-dashboard";
-import prisma from "@/lib/prisma";
-import { Suspense } from "react";
+"use client";
 
-const SessionsPage = async () => {
-  const sessions = await prisma.session.findMany({
-    where: {
-      trainerId: "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4",
-    },
-  });
-  const sessionTags = await prisma.tag.findMany({
-    where: {
-      sessionId: {
-        in: sessions.map((session) => session.id),
-      },
-    },
-  });
+import SessionDashboard from "@/components/modules/pages/trainer/sessions/session-dashboard";
+
+import { Session, Tag } from "@/prisma/generated/prisma";
+import { Suspense, useState } from "react";
+
+const SessionsPage = () => {
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionTags, setSessionTags] = useState<Tag[]>([]);
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <SessionDashboard sessions={sessions} sessionTags={sessionTags} />

@@ -3,11 +3,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { createSessionBackendSchema } from "@/lib/schemas/dashboard";
+import { getSession } from "@/lib/authtoken";
 
 export async function POST(req: NextRequest) {
   try {
     // Read the request body once and store it
-    const trainerId = "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4";
+    const session = await getSession(req);
+    if (!session) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+    const trainerId = session.data.userId;
     const body = await req.json();
     console.log("Received Data", body);
 

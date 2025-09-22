@@ -39,6 +39,8 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { createSessionFormSchema } from "@/lib/schemas/dashboard";
+import { Tag } from "@/prisma/generated/prisma";
+import { Plus, Search, X } from "lucide-react";
 
 type CreateSessionForm = z.infer<typeof createSessionFormSchema>;
 
@@ -61,6 +63,7 @@ export default function CreateSessionPage() {
       sessionDate: new Date(),
       sessionStartDate: new Date(),
       sessionEndDate: new Date(),
+      sessionTags: [],
       sessionDateAndTime: [
         {
           selectedDay: "Monday",
@@ -84,6 +87,7 @@ export default function CreateSessionPage() {
       );
 
       if (createSessionFormSchema.safeParse(data).success) {
+        data.sessionTags = sessionTags;
         try {
           const response = await axios.post(
             "/api/auth/trainer/session/create",
@@ -162,7 +166,8 @@ export default function CreateSessionPage() {
   );
 
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
-
+  const [sessionTags, setSessionTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
   // Optimize selected days update with useCallback
   const handleDayToggle = useCallback((dayValue: string, checked: boolean) => {
     setSelectedDays((prev) =>
@@ -227,6 +232,22 @@ export default function CreateSessionPage() {
     }
   }, [selectedDays, form]);
 
+  function addTag(e: any) {
+    e.preventDefault();
+
+    if (newTag.trim() && !sessionTags.includes(newTag.trim())) {
+      const updatedTags = [...sessionTags, newTag.trim()];
+      setSessionTags(updatedTags);
+
+      setNewTag("");
+    }
+  }
+
+  function removeTag(tagToRemove: string) {
+    const updatedTags = sessionTags.filter((tag) => tag !== tagToRemove);
+    setSessionTags(updatedTags);
+  }
+
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-3 sm:p-6">
       <Card className="w-full max-w-5xl">
@@ -238,16 +259,6 @@ export default function CreateSessionPage() {
             <CardDescription className="text-sm sm:text-base">
               Provide the details below to create a session
             </CardDescription>
-          </div>
-          <div className="w-full sm:w-auto">
-            <Select>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Select Session Tag" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Session Tag 1</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
@@ -649,7 +660,7 @@ export default function CreateSessionPage() {
                                                 startField.onChange
                                               }
                                             >
-                                              <SelectTrigger>
+                                              <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Select start time" />
                                               </SelectTrigger>
                                               <SelectContent>
@@ -678,7 +689,7 @@ export default function CreateSessionPage() {
                                               value={endField.value}
                                               onValueChange={endField.onChange}
                                             >
-                                              <SelectTrigger>
+                                              <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Select end time" />
                                               </SelectTrigger>
                                               <SelectContent>
@@ -727,6 +738,67 @@ export default function CreateSessionPage() {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="sessionTags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="space-y-2">
+                        <FormLabel>Tags</FormLabel>
+
+                        {sessionTags.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {sessionTags.map((tag) => (
+                              <div
+                                key={tag}
+                                className="flex items-center gap-1 bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm"
+                              >
+                                <span>{tag}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeTag(tag)}
+                                  className="text-blue-600 hover:text-blue-800 ml-1"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col gap-2">
+                        <div className="flex flex-row gap-2">
+                          <FormControl>
+                            <Input
+                              type="text"
+                              value={newTag}
+                              placeholder="e.g. Tag 1, Tag 2"
+                              onChange={(e) => setNewTag(e.target.value)}
+                              onKeyPress={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  addTag(e);
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            size={"icon"}
+                            onClick={(e) => addTag(e)}
+                            disabled={!newTag.trim()}
+                          >
+                            <Plus />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
@@ -752,3 +824,5 @@ export default function CreateSessionPage() {
     </div>
   );
 }
+
+

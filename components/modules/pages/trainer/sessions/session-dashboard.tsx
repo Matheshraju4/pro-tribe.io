@@ -169,7 +169,9 @@ const SessionDashboard = ({
                 )}
               </SelectContent>
             </Select>
-
+            <Link href="/trainer/sessions/create" className="w-full">
+              <Button className="w-full">Create Session</Button>
+            </Link>
             {/* Clear All Button - Full Width on Mobile */}
             {activeFilterCount > 0 && (
               <Button
@@ -250,6 +252,10 @@ const SessionDashboard = ({
                 )}
               </SelectContent>
             </Select>
+
+            <Link href="/trainer/sessions/create" className="w-full">
+              <Button className="w-full">Create Session</Button>
+            </Link>
             {activeFilterCount > 0 && (
               <Button
                 variant="outline"
