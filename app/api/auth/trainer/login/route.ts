@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
       {
         role: "Trainer",
         email: trainer.email,
+        userId: trainer.id,
       },
       rememberMe ? "30d" : "7d"
     );

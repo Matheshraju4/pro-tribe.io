@@ -60,12 +60,14 @@ export async function GET(request: NextRequest) {
       {
         role: "Trainer",
         email: trainer.email,
+        userId: trainer.id,
       },
       "7d"
     );
-    const response = NextResponse.json(
-      { message: "Login successful" },
-      { status: 200 }
+
+    // Create redirect response instead of JSON response
+    const response = NextResponse.redirect(
+      new URL("/trainer", process.env.APPLICATION_BASIC_URL)
     );
 
     // Set the cookie on the response

@@ -12,7 +12,7 @@ export const createSessionFormSchema = z
     bufferTime: z.string().min(1, "Buffer time is required"),
     sessionPrice: z.string().min(1, "Session price is required"),
     sessionValidity: z.date().min(new Date(), "Session validity is required"),
-
+    sessionTags: z.array(z.string()).optional(),
     // Make dates conditional based on frequency
     sessionDate: z.date().optional(), // For OneTime
     sessionStartDate: z.date().optional(), // For Recurring
@@ -61,7 +61,7 @@ export const createSessionBackendSchema = z
     sessionFrequency: z.enum(["OneTime", "Recurring"]),
     bufferTime: z.string().min(1, "Buffer time is required"),
     sessionPrice: z.string().min(1, "Session price is required"),
-
+    sessionTags: z.array(z.string()).optional(),
     // Transform date strings to Date objects
     sessionValidity: z.string().transform((str) => new Date(str)),
     sessionDate: z
