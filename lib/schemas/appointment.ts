@@ -4,7 +4,7 @@ export const appointmentFormSchema = z.object({
   appointmentName: z.string().min(1, "Appointment name is required"),
   appointmentDescription: z.string().optional(),
   appointmentDate: z.date({
-    required_error: "Appointment date is required",
+    error: "Appointment date is required",
   }),
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
