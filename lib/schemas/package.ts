@@ -34,6 +34,7 @@ export const createPackageFormSchema = z.object({
     .regex(/^\d+$/, "Please enter a valid number of days")
     .refine((val) => parseInt(val) > 0, "Validity must be at least 1 day")
     .refine((val) => parseInt(val) <= 365, "Validity cannot exceed 365 days"),
+  acceptedPaymentMethod: z.array(z.enum(["Stripe", "Both", "Cash"])),
 });
 
 // Type for the validated data

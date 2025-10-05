@@ -1,8 +1,13 @@
+import { getSession } from "@/lib/authtoken";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const trainerId = "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4";
+  const session = await getSession(request);
+  if (!session) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+  const trainerId = session.data.userId;
 
   try {
     const sessions = await prisma.session.findMany({
@@ -27,6 +32,40 @@ export async function GET(request: NextRequest) {
         success: false,
         message: "Failed to fetch sessions",
       },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  const session = await getSession(request);
+  if (!session) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+  const trainerId = session.data.userId;
+
+  try {
+    const body = await request.json();
+    const sessionId = body.sessionId;
+    const isActive = body.isActive;
+    const updatedSession = await prisma.session.update({
+      where: {
+        trainerId: trainerId,
+        id: sessionId,
+      },
+      data: {
+        isActive: isActive,
+      },
+    });
+    return NextResponse.json({
+      success: true,
+      updatedSession,
+      message: "Session Freezed successfully",
+    });
+  } catch (error) {
+    console.error("Error freezing session:", error);
+    return NextResponse.json(
+      { message: "Failed to freeze session" },
       { status: 500 }
     );
   }

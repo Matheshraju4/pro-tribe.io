@@ -41,10 +41,15 @@ import { useRouter } from "next/navigation";
 import { createSessionFormSchema } from "@/lib/schemas/dashboard";
 import { Tag } from "@/prisma/generated/prisma";
 import { Plus, Search, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type CreateSessionForm = z.infer<typeof createSessionFormSchema>;
 
 export default function CreateSessionPage() {
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
+  const [sessionTags, setSessionTags] = useState<string[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const form = useForm<CreateSessionForm>({
     resolver: zodResolver(createSessionFormSchema),
@@ -73,6 +78,7 @@ export default function CreateSessionPage() {
       ],
     },
   });
+console.log("session Tags", sessionTags);
 
   // Use watch only for specific fields that need to trigger conditional rendering
   const sessionType = form.watch("sessionType");
@@ -80,23 +86,24 @@ export default function CreateSessionPage() {
 
   const onSubmit = useCallback(
     async (data: CreateSessionForm) => {
-      console.log("Form data being submitted:", data);
-      console.log(
-        "Validation result:",
-        createSessionFormSchema.safeParse(data)
-      );
-
+      setIsLoading(true);
+    
       if (createSessionFormSchema.safeParse(data).success) {
+        console.log("session Tags from Form", sessionTags);
         data.sessionTags = sessionTags;
+        console.log("Actual Data",data)
         try {
           const response = await axios.post(
             "/api/auth/trainer/session/create",
             data
           );
-          response.status === 200
-            ? toast.success("Session created successfully")
-            : toast.error("Failed to create session");
-          // router.push("/trainer/sessions");
+
+          if (response.status === 200) {
+            toast.success("Session created successfully");
+            router.push("/trainer/sessions");
+          } else {
+            toast.error("Failed to create session");
+          }
         } catch (error) {
           toast.error("Failed to create session");
           console.error("Error creating session:", error);
@@ -107,6 +114,7 @@ export default function CreateSessionPage() {
           createSessionFormSchema.safeParse(data).error
         );
       }
+      setIsLoading(false);
     },
     [router]
   );
@@ -165,9 +173,6 @@ export default function CreateSessionPage() {
     []
   );
 
-  const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  const [sessionTags, setSessionTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState("");
   // Optimize selected days update with useCallback
   const handleDayToggle = useCallback((dayValue: string, checked: boolean) => {
     setSelectedDays((prev) =>
@@ -812,9 +817,13 @@ export default function CreateSessionPage() {
                 </Button>
                 <Button
                   type="submit"
-                  className="w-full sm:w-auto order-1 sm:order-2"
+                  className={cn(
+                    "w-full sm:w-auto order-1 sm:order-2",
+                    isLoading && "opacity-50"
+                  )}
+                  disabled={isLoading}
                 >
-                  Create Session
+                  {isLoading ? "Creating..." : "Create Session"}
                 </Button>
               </div>
             </form>

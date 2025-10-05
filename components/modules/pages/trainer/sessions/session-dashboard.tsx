@@ -1,7 +1,7 @@
 "use client";
 
 import { Session, Tag } from "@/prisma/generated/prisma";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,8 @@ import {
   SelectValue,
   SelectTrigger,
 } from "@/components/ui/select";
+import axios from "axios";
+import { toast } from "sonner";
 
 const SessionDashboard = ({
   sessions,
@@ -28,10 +30,15 @@ const SessionDashboard = ({
   const [selectedFrequency, setSelectedFrequency] = useState<string>("all");
   const [selectedTag, setSelectedTag] = useState<string>("all");
 
+  // Add this useEffect to sync localSessions when sessions prop changes
+  useEffect(() => {
+    setLocalSessions(sessions);
+  }, [sessions]);
+
   // Get all unique tags from sessions
   const allTags = useMemo(() => {
     const tagSet = new Set<string>();
-     sessionTags.forEach((tag) => {
+    sessionTags.forEach((tag) => {
       tagSet.add(tag.tag);
     });
     return Array.from(tagSet).sort();
@@ -93,6 +100,26 @@ const SessionDashboard = ({
     setSelectedTag("all");
   };
 
+async function freezeTheSession(sessionId: string){
+  try {
+    const response = await axios.put(`/api/auth/trainer/session`, {
+      sessionId,
+      isActive: false,
+    });
+    console.log("Session frozen successfully");
+
+    if(response.status === 200){
+      toast.success("Session frozen successfully");
+    }else{
+      toast.error("Failed to freeze session");
+    }
+  } catch (error) {
+    console.error("Error freezing session:", error);
+    toast.error("Failed to freeze session");
+  }
+  
+}
+
   return (
     <>
       {/* Search Input Section */}
@@ -130,7 +157,7 @@ const SessionDashboard = ({
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Session Type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="OneToOne">One To One</SelectItem>
                 <SelectItem value="Group">Group</SelectItem>
@@ -144,7 +171,7 @@ const SessionDashboard = ({
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Frequency" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 <SelectItem value="all">All Frequencies</SelectItem>
                 <SelectItem value="OneTime">One Time</SelectItem>
                 <SelectItem value="Recurring">Recurring</SelectItem>
@@ -155,7 +182,7 @@ const SessionDashboard = ({
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Tags" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="w-full">
                 <SelectItem value="all">All Tags</SelectItem>
                 {sessionTags.map((tag) => (
                   <SelectItem key={tag.tag} value={tag.tag}>
@@ -258,10 +285,9 @@ const SessionDashboard = ({
             </Link>
             {activeFilterCount > 0 && (
               <Button
-                variant="outline"
+                variant="destructive"
                 size="sm"
                 onClick={handleClearAllFilters}
-                className="text-gray-600 hover:text-gray-900"
               >
                 Clear All
               </Button>
@@ -274,7 +300,7 @@ const SessionDashboard = ({
       {filteredSessions?.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto px-3">
           {filteredSessions.map((session) => (
-            <SessionCard key={session.id} session={session} />
+            <SessionCard key={session.id} session={session} freezeTheSession={freezeTheSession} />
           ))}
         </div>
       ) : (
