@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getSession } from "@/lib/authtoken";
 
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Replace with actual session/auth logic
-    const session = { user: { id: "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4" } };
+    const session = await getSession(request);
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         postcode: data.postcode || null,
         country: data.country || null,
         tags: data.tags || [],
-        trainerId: session.user.id,
+        trainerId: session.data.userId,
       },
     });
 
@@ -49,9 +49,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     console.error("Failed to create client:", error);
-    
+
     // Handle unique constraint violation (duplicate email)
-    if (error.code === 'P2002') {
+    if (error.code === "P2002") {
       return NextResponse.json(
         { error: "A client with this email already exists" },
         { status: 409 }
@@ -60,6 +60,26 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "Failed to create client" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const clients = await prisma.client.findMany({
+      where: { trainerId: session.data.userId },
+    });
+    return NextResponse.json(clients);
+  } catch (error) {
+    console.error("Failed to fetch clients:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch clients" },
       { status: 500 }
     );
   }

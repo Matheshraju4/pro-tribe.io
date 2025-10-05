@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "sonner";
 import axios from "axios";
+import { useRouter } from "next/navigation";
+import { Card } from "@/components/ui/card";
 
 // Form validation schema
 const clientFormSchema = z.object({
@@ -56,6 +58,7 @@ export default function ClientForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
+  const router = useRouter();
 
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(clientFormSchema),
@@ -81,6 +84,7 @@ export default function ClientForm() {
       const response = await axios.post("/api/clients", data);
       if (response.status === 201) {
         toast.success("Client added successfully!");
+        router.push("/trainer/clients");
       } else {
         toast.error("Failed to add client. Please try again.");
       }
@@ -108,7 +112,7 @@ export default function ClientForm() {
   };
 
   return (
-    <div className=" mx-auto">
+    <Card className="max-w-5xl mx-auto">
       <div className="flex flex-col space-y-1.5 p-6">
         <div className="text-2xl font-semibold leading-none tracking-tight flex items-center space-x-2">
           <User className="w-5 h-5" />
@@ -313,6 +317,6 @@ export default function ClientForm() {
           </form>
         </Form>
       </div>
-    </div>
+    </Card>
   );
 }

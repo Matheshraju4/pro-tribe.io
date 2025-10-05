@@ -42,6 +42,11 @@ export async function POST(req: NextRequest) {
           create: validatedData.sessionDateAndTime,
         },
         trainerId: trainerId,
+        sessionTag: {
+          create: body?.sessionTags?.map((tag: string) => ({
+            tag: tag,
+          })),
+        },
       },
     });
 

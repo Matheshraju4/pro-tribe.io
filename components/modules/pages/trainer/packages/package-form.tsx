@@ -58,6 +58,9 @@ const PackageForm = ({
       packagePrice: initialData?.packagePrice || "",
       packageDiscount: initialData?.packageDiscount || "",
       validDays: initialData?.validDays || "",
+      acceptedPaymentMethod: (initialData as any)?.acceptedPaymentMethod || [
+        "Both",
+      ],
     },
   });
 
@@ -379,6 +382,65 @@ const PackageForm = ({
                           {...field}
                           disabled={isSubmitting}
                         />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="acceptedPaymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Accepted Payment Methods *</FormLabel>
+                      <FormControl>
+                        <div className="space-y-3">
+                          {[
+                            { value: "Cash" as const, label: "Cash" },
+                            { value: "Stripe" as const, label: "Stripe" },
+                            {
+                              value: "Both" as const,
+                              label: "Both Cash & Stripe",
+                            },
+                          ].map((method) => (
+                            <div
+                              key={method.value}
+                              className="flex items-center space-x-2"
+                            >
+                              <Checkbox
+                                id={`payment-${method.value}`}
+                                checked={
+                                  field.value?.includes(method.value) || false
+                                }
+                                onCheckedChange={(checked) => {
+                                  const currentValue = field.value || [];
+                                  if (checked) {
+                                    // Add the payment method if it's not already included
+                                    if (!currentValue.includes(method.value)) {
+                                      field.onChange([
+                                        ...currentValue,
+                                        method.value,
+                                      ]);
+                                    }
+                                  } else {
+                                    // Remove the payment method
+                                    field.onChange(
+                                      currentValue.filter(
+                                        (item) => item !== method.value
+                                      )
+                                    );
+                                  }
+                                }}
+                              />
+                              <Label
+                                htmlFor={`payment-${method.value}`}
+                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                              >
+                                {method.label}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -182,3 +182,41 @@ export const ButtonLoader = ({ text = "Loading..." }: { text?: string }) => (
   <Loader type="icon" size="sm" text={text} showText={false} />
 );
 export default Loader;
+
+
+export const NormalLoader = ({ text = "Loading..." }: { text?: string }) => {
+  const [activeIcon, setActiveIcon] = useState(0);
+
+  const icons = [
+    { Icon: Dumbbell, name: "Dumbbell" },
+    { Icon: Timer, name: "Timer" },
+    { Icon: Target, name: "Target" },
+    { Icon: Zap, name: "Zap" },
+    { Icon: Trophy, name: "Trophy" },
+  ];
+
+  useEffect(() => {
+    // Change icon immediately on mount
+    setActiveIcon(1);
+
+    const interval = setInterval(() => {
+      setActiveIcon((prev) => (prev + 1) % icons.length);
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, []); // Remove icons.length from dependency to avoid recreating interval
+
+  const CurrentIcon = icons[activeIcon].Icon;
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+      <div className="relative">
+        <CurrentIcon
+          className="w-12 h-12 text-primary animate-pulse"
+          strokeWidth={2}
+        />
+      </div>
+      <p className="text-lg font-medium text-gray-700">{text}</p>
+    </div>
+  );
+};

@@ -27,7 +27,9 @@ model Trainer {
   businessDetails BusinessDetails[]
   sessions        Session[]
   clients         Client[]
+  packages        Package[]
   progressTrackers ProgressTracker[]
+  appointments    Appointment[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 }
@@ -99,6 +101,7 @@ model Session {
   trainerId                String
   trainer                  Trainer                    @relation(fields: [trainerId], references: [id])
   sessionPackageConnection SessionPackageConnection[]
+  appointments             Appointment[]
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
 }
@@ -110,9 +113,12 @@ model Package {
   packagePrice             String?
   packageDiscount          String?
   validDays                String?
+  acceptedPaymentMethod    String[]
   sessionPackageConnection SessionPackageConnection[]
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
+  trainerId                String
+  trainer                  Trainer                    @relation(fields: [trainerId], references: [id])
 }
 
 model SessionPackageConnection {
@@ -138,6 +144,14 @@ model Appointment {
   appointpaidStatus      AppointpaidStatus
   status                 AppointmentStatus
   appointmentLocation    String
+  
+  // Relationships
+  trainerId              String
+  trainer                Trainer           @relation(fields: [trainerId], references: [id])
+  clientId               String?
+  client                 Client?           @relation(fields: [clientId], references: [id])
+  sessionId              String?
+  session                Session?          @relation(fields: [sessionId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -207,6 +221,7 @@ model Client {
   trainerId     String
   trainer       Trainer   @relation(fields: [trainerId], references: [id])
   clientProgress ClientProgress[]
+  appointments  Appointment[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
