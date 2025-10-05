@@ -121,3 +121,149 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { id, ...updateData } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Appointment ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate the request body
+    const validatedData = createAppointmentBackendSchema.parse(updateData);
+
+    // Update the appointment in the database
+    const appointment = await prisma.appointment.update({
+      where: {
+        id: id,
+        trainerId: session.data.userId, // Ensure user can only update their own appointments
+      },
+      data: {
+        appointmentName: validatedData.appointmentName,
+        appointmentDescription: validatedData.appointmentDescription,
+        appointmentDate: validatedData.appointmentDate,
+        startTime: validatedData.startTime,
+        endTime: validatedData.endTime,
+        appointmentLocation: validatedData.appointmentLocation,
+        appointmentPrice: validatedData.appointmentPrice,
+        appointpaidStatus: validatedData.appointpaidStatus,
+        status: validatedData.status,
+        clientId: validatedData.clientId,
+        sessionId: validatedData.sessionId || null,
+      },
+      include: {
+        client: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+        session: {
+          select: {
+            id: true,
+            sessionName: true,
+            sessionDescription: true,
+          },
+        },
+      },
+    });
+
+    console.log("Appointment updated successfully:", appointment);
+
+    return NextResponse.json(
+      {
+        success: true,
+        appointment,
+        message: "Appointment updated successfully",
+      },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error("Failed to update appointment:", error);
+
+    // Handle validation errors
+    if (error.name === "ZodError") {
+      return NextResponse.json(
+        { error: "Validation error", details: error.errors },
+        { status: 400 }
+      );
+    }
+
+    // Handle not found error
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { error: "Appointment not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to update appointment" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await getSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Appointment ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Delete the appointment from the database
+    await prisma.appointment.delete({
+      where: {
+        id: id,
+        trainerId: session.data.userId, // Ensure user can only delete their own appointments
+      },
+    });
+
+    console.log("Appointment deleted successfully:", id);
+
+    return NextResponse.json(
+      {
+        success: true,
+        message: "Appointment deleted successfully",
+      },
+      { status: 200 }
+    );
+  } catch (error: any) {
+    console.error("Failed to delete appointment:", error);
+
+    // Handle not found error
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { error: "Appointment not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to delete appointment" },
+      { status: 500 }
+    );
+  }
+}
