@@ -4,64 +4,14 @@ import { AppointmentForm } from "@/components/modules/pages/trainer/appointments
 import AppointmentCard from "@/components/modules/pages/trainer/appointments/appointment-card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { useState } from "react";
-
-// Dummy Data
-const dummyAppointments = [
-  {
-    id: "1",
-    appointmentName: "Fitness Consultation",
-    appointmentDescription: "Initial fitness assessment and goal setting",
-    appointmentDate: new Date("2024-03-20"),
-    startTime: "10:00 AM",
-    endTime: "11:00 AM",
-    appointmentPrice: "50.00",
-    appointmentLocation: "Main Gym",
-    meetingUrl: "https://zoom.us/j/123456789",
-    status: "Scheduled",
-    appointpaidStatus: "Paid",
-  },
-  {
-    id: "2",
-    appointmentName: "Personal Training Session",
-    appointmentDescription: "One-on-one strength training session",
-    appointmentDate: new Date("2024-03-21"),
-    startTime: "2:00 PM",
-    endTime: "3:00 PM",
-    appointmentPrice: "75.00",
-    appointmentLocation: "Training Room 2",
-    status: "Completed",
-    appointpaidStatus: "Paid",
-  },
-  {
-    id: "3",
-    appointmentName: "Nutrition Consultation",
-    appointmentDescription: "Diet planning and nutritional guidance",
-    appointmentDate: new Date("2024-03-22"),
-    startTime: "11:30 AM",
-    endTime: "12:30 PM",
-    appointmentPrice: "60.00",
-    appointmentLocation: "Online",
-    meetingUrl: "https://zoom.us/j/987654321",
-    status: "Scheduled",
-    appointpaidStatus: "Unpaid",
-  },
-  {
-    id: "4",
-    appointmentName: "Group Training Session",
-    appointmentDescription: "High-intensity interval training",
-    appointmentDate: new Date("2024-03-19"),
-    startTime: "9:00 AM",
-    endTime: "10:00 AM",
-    appointmentPrice: "30.00",
-    appointmentLocation: "Group Exercise Room",
-    status: "Cancelled",
-    appointpaidStatus: "Unpaid",
-  },
-] as const;
-
+import { useEffect, useState } from "react";
+import { Appointment } from "@/prisma/generated/prisma";
+import axios from "axios";
 const AppointmentsPage = () => {
   const [open, setOpen] = useState(false);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const handleEdit = (id: string) => {
     console.log("Edit appointment:", id);
@@ -72,6 +22,30 @@ const AppointmentsPage = () => {
     console.log("Delete appointment:", id);
     // Handle delete logic
   };
+
+  const fetchAppointments = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await axios.get("/api/appointments");
+
+      if (response.data.success) {
+        setAppointments(response.data.appointments);
+        console.log("Fetched appointments:", response.data.appointments);
+      } else {
+        setError("Failed to fetch appointments");
+      }
+    } catch (error: any) {
+      console.error("Error fetching appointments:", error);
+      setError(error.response?.data?.error || "Failed to fetch appointments");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -90,21 +64,47 @@ const AppointmentsPage = () => {
         </Button>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="text-gray-500 mt-4">Loading appointments...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="text-center py-12">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+            <h3 className="text-lg font-semibold text-red-900">Error</h3>
+            <p className="text-red-700 mt-2">{error}</p>
+            <Button
+              onClick={fetchAppointments}
+              variant="outline"
+              className="mt-4"
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Appointments Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {dummyAppointments.map((appointment) => (
-          <AppointmentCard
-            key={appointment.id}
-            appointment={appointment}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-          />
-        ))}
-      </div>
+      {!isLoading && !error && appointments.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {appointments.map((appointment) => (
+            <AppointmentCard
+              key={appointment.id}
+              appointment={appointment}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* @ts-ignore */}
-
-      {dummyAppointments?.length === 0 && (
+      {/* Empty State */}
+      {!isLoading && !error && appointments.length === 0 && (
         <div className="text-center py-12">
           <h3 className="text-lg font-semibold text-gray-900">
             No appointments found
@@ -123,7 +123,11 @@ const AppointmentsPage = () => {
       )}
 
       {/* Create Appointment Form Dialog */}
-      <AppointmentForm open={open} onOpenChange={setOpen} />
+      <AppointmentForm
+        open={open}
+        onOpenChange={setOpen}
+        onSuccess={fetchAppointments}
+      />
     </div>
   );
 };

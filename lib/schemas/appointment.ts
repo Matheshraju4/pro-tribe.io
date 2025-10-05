@@ -14,6 +14,7 @@ export const appointmentFormSchema = z.object({
   sessionId: z.string().optional(),
   appointpaidStatus: z.enum(["Paid", "Unpaid"]),
   status: z.enum(["Scheduled", "Cancelled", "Completed"]),
+  duration: z.string().optional(),
 });
 
 export type AppointmentFormValues = z.infer<typeof appointmentFormSchema>;

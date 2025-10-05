@@ -45,6 +45,7 @@ import { NormalLoader } from "@/components/modules/general/loader";
 interface AppointmentFormProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onSuccess?: () => void;
 }
 
 interface Client {
@@ -64,11 +65,16 @@ interface Session {
   sessionType: string;
 }
 
-export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
+export function AppointmentForm({
+  open,
+  onOpenChange,
+  onSuccess,
+}: AppointmentFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [clients, setClients] = useState<Client[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState<string>("30");
 
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(appointmentFormSchema),
@@ -80,6 +86,8 @@ export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
       status: "Scheduled",
       clientId: "",
       sessionId: "none",
+      duration: "30",
+      appointmentPrice: "",
     },
   });
 
@@ -116,7 +124,47 @@ export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
     }
   };
 
+  // Function to calculate end time based on start time and duration
+  const calculateEndTime = (startTime: string, duration: string) => {
+    if (!startTime || !duration) return "";
+
+    const [time, period] = startTime.split(" ");
+    const [hours, minutes] = time.split(":").map(Number);
+
+    let totalMinutes = hours * 60 + minutes;
+    if (period === "PM" && hours !== 12) totalMinutes += 12 * 60;
+    if (period === "AM" && hours === 12) totalMinutes -= 12 * 60;
+
+    totalMinutes += parseInt(duration);
+
+    let endHours = Math.floor(totalMinutes / 60);
+    const endMinutes = totalMinutes % 60;
+
+    let endPeriod = "AM";
+    if (endHours >= 12) {
+      endPeriod = "PM";
+      if (endHours > 12) endHours -= 12;
+    }
+    if (endHours === 0) endHours = 12;
+
+    return `${endHours}:${endMinutes.toString().padStart(2, "0")} ${endPeriod}`;
+  };
+
+  // Debug function to check form state
+  const debugFormState = () => {
+    console.log("=== FORM DEBUG INFO ===");
+    console.log("Form values:", form.getValues());
+    console.log("Form errors:", form.formState.errors);
+    console.log("Form is valid:", form.formState.isValid);
+    console.log("Form is dirty:", form.formState.isDirty);
+    console.log("Form is submitting:", form.formState.isSubmitting);
+    console.log("=========================");
+  };
+
   async function onSubmit(data: AppointmentFormValues) {
+    console.log("🚀 onSubmit function called!");
+    console.log("Form data being submitted:", data);
+
     try {
       setIsSubmitting(true);
 
@@ -125,6 +173,8 @@ export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
         ...data,
         sessionId: data.sessionId === "none" ? null : data.sessionId,
       };
+
+      console.log("Data being sent to API:", submitData);
 
       const response = await axios.post("/api/appointments", submitData);
 
@@ -135,15 +185,50 @@ export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
         );
         form.reset();
         onOpenChange?.(false);
-        // You could add a toast notification here
+        onSuccess?.(); // Call the success callback to refresh the list
+        alert("Appointment created successfully!");
+      } else {
+        console.error("API returned error:", response.data);
+        alert(
+          "Failed to create appointment: " +
+            (response.data.error || "Unknown error")
+        );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create appointment:", error);
-      // You could add error toast notification here
+      if (error.response) {
+        console.error("Error response:", error.response.data);
+        alert(
+          "Failed to create appointment: " +
+            (error.response.data.error || "Server error")
+        );
+      } else {
+        alert("Failed to create appointment: Network error");
+      }
     } finally {
       setIsSubmitting(false);
     }
   }
+
+  // Function to handle form submission with validation check
+  const handleFormSubmit = () => {
+    console.log("🔍 Submit button clicked!");
+    debugFormState();
+
+    // Manually trigger form validation
+    form.handleSubmit(
+      (data) => {
+        console.log("✅ Form validation passed, calling onSubmit");
+        onSubmit(data);
+      },
+      (errors) => {
+        console.log("❌ Form validation failed:", errors);
+        alert(
+          "Please fix the form errors before submitting. Check console for details."
+        );
+      }
+    )();
+  };
 
   const timeSlots = [
     "08:00 AM",
@@ -181,7 +266,14 @@ export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
           </div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                console.log("📝 Form submit event triggered");
+                handleFormSubmit();
+              }}
+              className="space-y-4"
+            >
               {/* Client and Session Selection Row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
@@ -272,7 +364,21 @@ export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
                   </FormItem>
                 )}
               />
-              {/* Doctor/Trainer Selection */}
+
+              {/* Appointment Price */}
+              <FormField
+                control={form.control}
+                name="appointmentPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Price (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter price (e.g., $50)" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Date Selection */}
               <FormField
@@ -325,7 +431,17 @@ export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>From</FormLabel>
-                      <Select onValueChange={field.onChange}>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          // Auto-calculate end time if duration is selected
+                          const duration = form.getValues("duration");
+                          if (duration) {
+                            const endTime = calculateEndTime(value, duration);
+                            form.setValue("endTime", endTime);
+                          }
+                        }}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select time" />
@@ -369,26 +485,20 @@ export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
                   )}
                 />
               </div>
-
-              {/* Duration Selection */}
-              <FormItem>
-                <FormLabel>Duration</FormLabel>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1 bg-blue-50"
-                  >
-                    15 min
-                  </Button>
-                  <Button type="button" variant="outline" className="flex-1">
-                    30 min
-                  </Button>
-                  <Button type="button" variant="outline" className="flex-1">
-                    60 min
-                  </Button>
-                </div>
-              </FormItem>
+              {/* Appointment Price */}
+              <FormField
+                control={form.control}
+                name="appointmentLocation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Appointment Location</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter Appointment Location" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Form Actions */}
               <div className="flex justify-end gap-2 pt-4">
@@ -400,7 +510,15 @@ export function AppointmentForm({ open, onOpenChange }: AppointmentFormProps) {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting || isLoading}>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || isLoading}
+                  onClick={(e) => {
+                    console.log("🎯 Submit button onClick triggered");
+                    e.preventDefault();
+                    handleFormSubmit();
+                  }}
+                >
                   {isSubmitting ? "Creating..." : "Create Appointment"}
                 </Button>
               </div>
