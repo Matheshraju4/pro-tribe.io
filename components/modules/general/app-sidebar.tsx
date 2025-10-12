@@ -4,8 +4,10 @@ import {
   Home,
   Inbox,
   Package,
+  Plus,
   Search,
   Settings,
+  TicketPercent,
   User,
   Users,
 } from "lucide-react";
@@ -29,20 +31,30 @@ const items = [
     icon: Home,
   },
   {
-    title: "Sessions",
-    url: "/trainer/sessions",
-    icon: Calendar,
+    title:"Create Event",
+    url:"/trainer/create-event",
+    icon:Plus,
   },
   {
-    title: "Packages",
-    url: "/trainer/packages",
-    icon: Package,
+    title:"Packages & Memberships",
+    url:"/trainer/packages-memberships",
+    icon:Package,
   },
-  {
-    title: "Appointments",
-    url: "/trainer/appointments",
-    icon: Calendar,
-  },
+  // {
+  //   title: "Sessions",
+  //   url: "/trainer/sessions",
+  //   icon: Calendar,
+  // },
+  // {
+  //   title: "Packages",
+  //   url: "/trainer/packages",
+  //   icon: Package,
+  // },
+  // {
+  //   title: "Appointments",
+  //   url: "/trainer/appointments",
+  //   icon: Calendar,
+  // },
   {
     title: "Clients",
     url: "/trainer/clients",
@@ -52,6 +64,11 @@ const items = [
     title: "Progress Management",
     url: "/trainer/progress-management",
     icon: BarChart,
+  },
+  {
+    title: "Discount Codes",
+    url: "/trainer/discount-codes",
+    icon: TicketPercent,
   },
   {
     title: "Public Page",

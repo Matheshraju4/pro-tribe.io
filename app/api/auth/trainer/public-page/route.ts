@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import { createPublicPageFormSchema } from "@/lib/schemas/dashboard";
 import prisma from "@/lib/prisma";
+import { getSession } from "@/lib/authtoken";
 
 export async function POST(req: NextRequest) {
   try {
-    const session = { user: { id: "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4" } };
+    const session = await getSession(req);
 
-    if (!session?.user?.id) {
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const newPage = await prisma.publicPage.create({
       data: {
         ...validatedData,
-        trainerId: session.user.id,
+        trainerId: session.data.userId,
       },
     });
 
@@ -33,9 +33,9 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    const session = { user: { id: "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4" } };
+    const session = await getSession(req);
 
-    if (!session?.user?.id) {
+    if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -44,7 +44,7 @@ export async function PUT(req: NextRequest) {
 
     const updatedPage = await prisma.publicPage.update({
       where: {
-        trainerId: session.user.id,
+        trainerId: session.data.userId,
       },
       data: validatedData,
     });
@@ -61,11 +61,24 @@ export async function PUT(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const session = { user: { id: "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4" } };
+    const session = await getSession(req);
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const data = await prisma.publicPage.findUnique({
       where: {
-        trainerId: session.user.id,
+        trainerId: session.data.userId,
+      },
+      include: {
+        trainer: {
+          select: {
+            name: true,
+            email: true,
+            mobileNumber: true,
+          }
+        }
       },
     });
 

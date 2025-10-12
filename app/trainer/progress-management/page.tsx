@@ -40,6 +40,8 @@ import {
 import { Progress } from "@/components/ui/progress";
 import axios from "axios";
 import { toast } from "sonner";
+import { NormalLoader } from "@/components/modules/general/loader";
+import { AssignTrackerDialog } from "@/components/modules/pages/trainer/progress-management/assign-tracker-dialog";
 
 interface ProgressTracker {
   id: string;
@@ -75,6 +77,8 @@ export default function ProgressManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedTracker, setSelectedTracker] = useState<ProgressTracker | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -92,6 +96,15 @@ export default function ProgressManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAssignTracker = (tracker: ProgressTracker) => {
+    setSelectedTracker(tracker);
+    setAssignDialogOpen(true);
+  };
+
+  const handleAssignmentSuccess = () => {
+    fetchTrackers(); // Refresh the trackers list
   };
 
   const filteredTrackers = trackers.filter((tracker) => {
@@ -169,9 +182,7 @@ export default function ProgressManagement() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading progress trackers...</div>
-      </div>
+     <NormalLoader/>
     );
   }
 
@@ -408,7 +419,7 @@ export default function ProgressManagement() {
                         <Edit className="h-4 w-4 mr-2" />
                         Edit Tracker
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAssignTracker(tracker)}>
                         <Settings className="h-4 w-4 mr-2" />
                         Manage Clients
                       </DropdownMenuItem>
@@ -508,6 +519,14 @@ export default function ProgressManagement() {
           ))}
         </div>
       )}
+
+      {/* Assignment Dialog */}
+      <AssignTrackerDialog
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        tracker={selectedTracker}
+        onSuccess={handleAssignmentSuccess}
+      />
     </div>
   );
 }

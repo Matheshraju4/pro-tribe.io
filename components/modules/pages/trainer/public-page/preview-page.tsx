@@ -7,9 +7,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Building2, Mail, Phone, Globe, MapPin, Image } from "lucide-react";
+import { Building2, Mail, Phone, Globe, MapPin, Image, Package, Users, Clock, DollarSign } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useWatch } from "react-hook-form";
+import { Badge } from "@/components/ui/badge";
 
 function calculateCompletionPercentage(formData: any) {
   const requiredFields = [
@@ -47,6 +48,8 @@ export default function Preview({
   // Move useWatch outside useEffect
   const watchedFormData = operation === "create" ? useWatch({ control }) : null;
   const [formData, setFormData] = useState(control);
+  const [programs, setPrograms] = useState<any>(null);
+  const [loadingPrograms, setLoadingPrograms] = useState(false);
 
   useEffect(() => {
     if (operation === "preview") {
@@ -55,6 +58,26 @@ export default function Preview({
       setFormData(watchedFormData);
     }
   }, [control, operation, watchedFormData]);
+
+  // Fetch programs data
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      try {
+        setLoadingPrograms(true);
+        const response = await fetch("/api/auth/trainer/public-page/programs");
+        if (response.ok) {
+          const data = await response.json();
+          setPrograms(data);
+        }
+      } catch (error) {
+        console.error("Error fetching programs:", error);
+      } finally {
+        setLoadingPrograms(false);
+      }
+    };
+
+    fetchPrograms();
+  }, []);
 
   // If no data is available yet, show loading or empty state
   if (!formData) {
@@ -203,27 +226,141 @@ export default function Preview({
               </p>
             </div>
 
-            {/* Update programs grid */}
+            {/* Programs section */}
             <div className="space-y-3">
               <h4 className="text-lg font-semibold text-gray-900">
-                Featured Programs
+                Available Programs
               </h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="text-sm font-medium text-gray-900">
-                    Personal Training
-                  </div>
-                  <div className="text-sm text-gray-500">1-on-1 Sessions</div>
+              
+              {loadingPrograms ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
-                <div className="bg-gray-50 p-2 sm:p-3 rounded-lg">
-                  <div className="text-[10px] sm:text-xs font-medium text-gray-900">
-                    Group Classes
+              ) : programs && (programs.packages.length > 0 || programs.memberships.length > 0) ? (
+                <div className="space-y-4">
+                  {/* Packages */}
+                  {programs.packages.length > 0 && (
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <Package className="h-4 w-4" />
+                        Packages ({programs.packages.length})
+                      </h5>
+                      <div className="grid grid-cols-1 gap-3">
+                        {programs.packages.slice(0, 3).map((pkg: any) => (
+                          <div key={pkg.id} className="bg-gray-50 p-3 rounded-lg border hover:bg-gray-100 transition-colors">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {pkg.name}
+                                </div>
+                                {pkg.description && (
+                                  <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                    {pkg.description}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 mt-2">
+                                  {pkg.price && (
+                                    <div className="flex items-center gap-1 text-xs text-green-600">
+                                      <DollarSign className="h-3 w-3" />
+                                      {pkg.price}
+                                    </div>
+                                  )}
+                                  {pkg.sessions.length > 0 && (
+                                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                                      <Users className="h-3 w-3" />
+                                      {pkg.sessions.length} sessions
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <Badge variant="secondary" className="text-xs">
+                                Package
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                        {programs.packages.length > 3 && (
+                          <div className="text-xs text-gray-500 text-center py-2">
+                            +{programs.packages.length - 3} more packages
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Memberships */}
+                  {programs.memberships.length > 0 && (
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        Memberships ({programs.memberships.length})
+                      </h5>
+                      <div className="grid grid-cols-1 gap-3">
+                        {programs.memberships.slice(0, 2).map((membership: any) => (
+                          <div key={membership.id} className="bg-blue-50 p-3 rounded-lg border hover:bg-blue-100 transition-colors">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {membership.name}
+                                </div>
+                                {membership.description && (
+                                  <div className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                    {membership.description}
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 mt-2">
+                                  {membership.billingPeriod === "Monthly" && membership.monthlyPrice && (
+                                    <div className="flex items-center gap-1 text-xs text-blue-600">
+                                      <DollarSign className="h-3 w-3" />
+                                      {membership.monthlyPrice}/month
+                                    </div>
+                                  )}
+                                  {membership.billingPeriod === "Weekly" && membership.weeklyPrice && (
+                                    <div className="flex items-center gap-1 text-xs text-blue-600">
+                                      <DollarSign className="h-3 w-3" />
+                                      {membership.weeklyPrice}/week
+                                    </div>
+                                  )}
+                                  {membership.billingPeriod === "Yearly" && membership.yearlyPrice && (
+                                    <div className="flex items-center gap-1 text-xs text-blue-600">
+                                      <DollarSign className="h-3 w-3" />
+                                      {membership.yearlyPrice}/year
+                                    </div>
+                                  )}
+                                  {membership.sessions.length > 0 && (
+                                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                                      <Clock className="h-3 w-3" />
+                                      {membership.sessions.length} sessions
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                              <Badge variant="default" className="text-xs">
+                                Membership
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                        {programs.memberships.length > 2 && (
+                          <div className="text-xs text-gray-500 text-center py-2">
+                            +{programs.memberships.length - 2} more memberships
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="bg-gray-50 p-6 rounded-lg text-center">
+                  <Package className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <div className="text-sm text-gray-600">
+                    No programs available yet
                   </div>
-                  <div className="text-[10px] sm:text-xs text-gray-500">
-                    High-Energy Workouts
+                  <div className="text-xs text-gray-500 mt-1">
+                    Create packages and memberships to display them here
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Update contact section */}

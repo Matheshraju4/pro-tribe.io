@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getSession } from "@/lib/authtoken";
 
 // GET method to fetch all progress trackers for a trainer
 export async function GET(request: NextRequest) {
   try {
-    const session = { user: { id: "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4" } };
+    const session = await getSession(request);
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     const trackers = await prisma.progressTracker.findMany({
       where: {
-        trainerId: session.user.id,
+        trainerId: session.data.userId,
         isActive: true,
       },
       include: {
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
 // POST method to create a new progress tracker
 export async function POST(request: NextRequest) {
   try {
-    const session = { user: { id: "d8f1ba28-9fdc-4ad9-a5a4-c438ee2133d4" } };
+    const session = await getSession(request);
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
         falseLabel: data.falseLabel,
         ratingScale: data.ratingScale,
         configuration: configuration,
-        trainerId: session.user.id,
+        trainerId: session.data.userId,
       },
     });
 
