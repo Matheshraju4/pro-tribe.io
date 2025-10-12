@@ -4,10 +4,10 @@ import prisma from "@/lib/prisma";
 // GET - Public endpoint to view a trainer's public page
 export async function GET(
   req: NextRequest,
-  { params }: { params: { username: string } }
+  context: { params: Promise<{ username: string }> }
 ) {
   try {
-    const { username } = params;
+    const { username } = await context.params;
 
     if (!username) {
       return NextResponse.json(
