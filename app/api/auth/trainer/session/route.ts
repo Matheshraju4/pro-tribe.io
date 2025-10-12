@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/authtoken";
 
-// GET - Fetch trainer session data
+// GET - Fetch trainer sessions data
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession(req);
@@ -11,28 +11,35 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const trainer = await prisma.trainer.findUnique({
+    // Fetch sessions with their tags
+    const sessions = await prisma.session.findMany({
       where: {
-        id: session.data.userId,
+        trainerId: session.data.userId,
+        isActive: true,
       },
       include: {
-        businessDetails: true,
-        publicPage: true,
+        sessionTag: true,
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
-    if (!trainer) {
-      return NextResponse.json({ error: "Trainer not found" }, { status: 404 });
-    }
+    // Fetch all tags for the trainer
+    const sessionTags = await prisma.tag.findMany({
+      where: {
+        sessionId: session.data.userId,
+      },
+    });
 
-    // Remove sensitive data
-    const { password, ...trainerData } = trainer;
-
-    return NextResponse.json({ trainer: trainerData }, { status: 200 });
+    return NextResponse.json({ 
+      sessions: sessions,
+      sessionTags: sessionTags
+    }, { status: 200 });
   } catch (error) {
-    console.error("Error fetching trainer session:", error);
+    console.error("Error fetching trainer sessions:", error);
     return NextResponse.json(
-      { error: "Failed to fetch trainer data" },
+      { error: "Failed to fetch sessions data" },
       { status: 500 }
     );
   }
