@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Appointment } from "@/prisma/generated/prisma";
 import axios from "axios";
+import { NormalLoader } from "@/components/modules/general/loader";
 const AppointmentsPage = () => {
   const [open, setOpen] = useState(false);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -66,10 +67,7 @@ const AppointmentsPage = () => {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="text-gray-500 mt-4">Loading appointments...</p>
-        </div>
+        <NormalLoader/>
       )}
 
       {/* Error State */}
@@ -105,7 +103,7 @@ const AppointmentsPage = () => {
 
       {/* Empty State */}
       {!isLoading && !error && appointments.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12 flex flex-col justify-center items-center">
           <h3 className="text-lg font-semibold text-gray-900">
             No appointments found
           </h3>

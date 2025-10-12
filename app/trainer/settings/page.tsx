@@ -50,6 +50,7 @@ import {
   Globe,
   CheckCircle,
 } from "lucide-react";
+import { NormalLoader } from "@/components/modules/general/loader";
 
 // Validation Schemas
 const profileSchema = z.object({
@@ -206,6 +207,18 @@ export default function SettingsPage() {
               businessDescription: business.businessDescription || "",
             });
           }
+
+          // Update preferences form
+          preferencesForm.reset({
+            timezone: trainer.timezone || "UTC",
+            language: trainer.language || "en",
+            theme: trainer.theme || "system",
+            notifications: {
+              email: trainer.emailNotifications ?? true,
+              push: trainer.pushNotifications ?? true,
+              sms: trainer.smsNotifications ?? false,
+            },
+          });
         }
       } catch (error) {
         console.error("Error fetching trainer data:", error);
@@ -277,9 +290,7 @@ export default function SettingsPage() {
 
   if (isLoading && !trainerData) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
-      </div>
+      <NormalLoader/>
     );
   }
 

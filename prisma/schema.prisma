@@ -22,6 +22,12 @@ model Trainer {
   password        String?
   age             Int?
   gender          String?
+  timezone        String?           @default("UTC")
+  language        String?           @default("en")
+  theme           String?           @default("system")
+  emailNotifications Boolean?       @default(true)
+  pushNotifications  Boolean?       @default(true)
+  smsNotifications   Boolean?       @default(false)
   // subscription Subscription[]
   publicPage      PublicPage?
   businessDetails BusinessDetails[]
@@ -30,6 +36,9 @@ model Trainer {
   packages        Package[]
   progressTrackers ProgressTracker[]
   appointments    Appointment[]
+  availability    TrainerAvailability[]
+  memberships     Membership[]
+  discounts       Discount[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 }
@@ -101,6 +110,8 @@ model Session {
   trainerId                String
   trainer                  Trainer                    @relation(fields: [trainerId], references: [id])
   sessionPackageConnection SessionPackageConnection[]
+  membershipSessionConnection MembershipSessionConnection[]
+  discountSessionConnection DiscountSessionConnection[]
   appointments             Appointment[]
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
@@ -115,6 +126,7 @@ model Package {
   validDays                String?
   acceptedPaymentMethod    String[]
   sessionPackageConnection SessionPackageConnection[]
+  discountPackageConnection DiscountPackageConnection[]
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
   trainerId                String
@@ -204,6 +216,129 @@ enum WeekDay {
   Friday
   Saturday
   Sunday
+}
+
+model TrainerAvailability {
+  id        String   @id @default(uuid())
+  trainerId String
+  trainer   Trainer  @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  dayOfWeek WeekDay
+  startTime String   // Store as "HH:MM" format (e.g., "10:00")
+  endTime   String   // Store as "HH:MM" format (e.g., "19:00")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([trainerId, dayOfWeek])
+  @@index([trainerId])
+}
+
+model Membership {
+  id                          String                        @id @default(uuid())
+  membershipName              String
+  membershipDescription       String?
+  billingPeriod               BillingPeriod                 // Weekly, Monthly, Yearly
+  weeklyPrice                 String?
+  monthlyPrice                String?
+  yearlyPrice                 String?
+  autoRenewal                 Boolean                       @default(false)
+  visibility                  MembershipVisibility          @default(Private)
+  isActive                    Boolean                       @default(true)
+  
+  // Relationships
+  trainerId                   String
+  trainer                     Trainer                       @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  membershipSessionConnection MembershipSessionConnection[]
+  
+  createdAt                   DateTime                      @default(now())
+  updatedAt                   DateTime                      @updatedAt
+
+  @@index([trainerId])
+}
+
+model MembershipSessionConnection {
+  id           String     @id @default(uuid())
+  membershipId String
+  membership   Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  sessionId    String
+  session      Session    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([membershipId, sessionId])
+  @@index([membershipId])
+  @@index([sessionId])
+}
+
+enum BillingPeriod {
+  Weekly
+  Monthly
+  Yearly
+}
+
+enum MembershipVisibility {
+  Public      // Visible on public page
+  Private     // Only visible to specific clients
+}
+
+model Discount {
+  id              String                    @id @default(uuid())
+  code            String                    @unique
+  name            String
+  description     String?
+  type            DiscountType              // Percentage or Fixed
+  value           String                    // Discount value (percentage or fixed amount)
+  startDate       DateTime
+  endDate         DateTime
+  usageLimit      Int?                      // null means unlimited
+  currentUsage    Int                       @default(0)
+  minAmount       String?                   // Minimum purchase amount to apply discount
+  isActive        Boolean                   @default(true)
+  
+  // Relationships
+  trainerId       String
+  trainer         Trainer                   @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+  discountPackageConnection DiscountPackageConnection[]
+  discountSessionConnection DiscountSessionConnection[]
+  
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@index([trainerId])
+  @@index([code])
+}
+
+model DiscountPackageConnection {
+  id         String   @id @default(uuid())
+  discountId String
+  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  packageId  String
+  package    Package  @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([discountId, packageId])
+  @@index([discountId])
+  @@index([packageId])
+}
+
+model DiscountSessionConnection {
+  id         String   @id @default(uuid())
+  discountId String
+  discount   Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  sessionId  String
+  session    Session  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([discountId, sessionId])
+  @@index([discountId])
+  @@index([sessionId])
+}
+
+enum DiscountType {
+  Percentage
+  Fixed
 }
 
 model Client {

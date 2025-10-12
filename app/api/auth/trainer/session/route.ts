@@ -1,71 +1,38 @@
-import { getSession } from "@/lib/authtoken";
-import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { getSession } from "@/lib/authtoken";
 
-export async function GET(request: NextRequest) {
-  const session = await getSession(request);
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-  const trainerId = session.data.userId;
-
+// GET - Fetch trainer session data
+export async function GET(req: NextRequest) {
   try {
-    const sessions = await prisma.session.findMany({
+    const session = await getSession(req);
+    
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const trainer = await prisma.trainer.findUnique({
       where: {
-        trainerId: trainerId,
+        id: session.data.userId,
       },
       include: {
-        sessionTag: true,
-        sessionDateAndTime: true,
+        businessDetails: true,
+        publicPage: true,
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      sessions,
-      message: "Session data fetched successfully",
-    });
+    if (!trainer) {
+      return NextResponse.json({ error: "Trainer not found" }, { status: 404 });
+    }
+
+    // Remove sensitive data
+    const { password, ...trainerData } = trainer;
+
+    return NextResponse.json({ trainer: trainerData }, { status: 200 });
   } catch (error) {
-    console.error("Error fetching sessions:", error);
+    console.error("Error fetching trainer session:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to fetch sessions",
-      },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  const session = await getSession(request);
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
-  const trainerId = session.data.userId;
-
-  try {
-    const body = await request.json();
-    const sessionId = body.sessionId;
-    const isActive = body.isActive;
-    const updatedSession = await prisma.session.update({
-      where: {
-        trainerId: trainerId,
-        id: sessionId,
-      },
-      data: {
-        isActive: isActive,
-      },
-    });
-    return NextResponse.json({
-      success: true,
-      updatedSession,
-      message: "Session Freezed successfully",
-    });
-  } catch (error) {
-    console.error("Error freezing session:", error);
-    return NextResponse.json(
-      { message: "Failed to freeze session" },
+      { error: "Failed to fetch trainer data" },
       { status: 500 }
     );
   }
