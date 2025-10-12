@@ -272,7 +272,7 @@ export async function PUT(req: NextRequest) {
       if (selectedPackages && selectedPackages.length > 0) {
         await prisma.discountPackageConnection.createMany({
           data: selectedPackages.map((packageId: string) => ({
-            discountId: discount.id,
+            discountId: updatedDiscount.id,
             packageId,
           })),
         });
@@ -282,7 +282,7 @@ export async function PUT(req: NextRequest) {
       if (selectedSessions && selectedSessions.length > 0) {
         await prisma.discountSessionConnection.createMany({
           data: selectedSessions.map((sessionId: string) => ({
-            discountId: discount.id,
+            discountId: updatedDiscount.id,
             sessionId,
           })),
         });
