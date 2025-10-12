@@ -46,6 +46,9 @@ const SessionDashboard = ({
 
   // Filter sessions based on all criteria
   const filteredSessions = useMemo(() => {
+    if (!localSessions || !Array.isArray(localSessions)) {
+      return [];
+    }
     return localSessions.filter((session) => {
       // Search by name
       const matchesSearch =
@@ -65,7 +68,7 @@ const SessionDashboard = ({
       // Filter by tag
       const matchesTag =
         selectedTag === "all" ||
-        sessionTags.some((tag) => tag.tag === selectedTag);
+        (sessionTags && Array.isArray(sessionTags) && sessionTags.some((tag) => tag.tag === selectedTag));
 
       return (
         matchesSearch && matchesSessionType && matchesFrequency && matchesTag
@@ -77,6 +80,7 @@ const SessionDashboard = ({
     selectedSessionType,
     selectedFrequency,
     selectedTag,
+    sessionTags,
   ]);
 
   // Count active filters

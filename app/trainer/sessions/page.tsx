@@ -19,6 +19,7 @@ const SessionsPage = () => {
         const response = await axios.get("/api/auth/trainer/session");
         // console.log("SessionData", response.data.sessions);
         setSessions(response.data.sessions);
+        setSessionTags(response.data.sessionTags);
       } catch (error) {
         console.error("Error fetching sessions:", error);
       } finally {
