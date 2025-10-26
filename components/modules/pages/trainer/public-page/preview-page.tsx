@@ -11,6 +11,7 @@ import { Building2, Mail, Phone, Globe, MapPin, Image, Package, Users, Clock, Do
 import { useEffect, useState } from "react";
 import { useWatch } from "react-hook-form";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 
 function calculateCompletionPercentage(formData: any) {
   const requiredFields = [
@@ -50,6 +51,7 @@ export default function Preview({
   const [formData, setFormData] = useState(control);
   const [programs, setPrograms] = useState<any>(null);
   const [loadingPrograms, setLoadingPrograms] = useState(false);
+  const router = useRouter()
 
   useEffect(() => {
     if (operation === "preview") {
@@ -410,7 +412,7 @@ export default function Preview({
               <h4 className="text-lg font-semibold text-blue-900 mb-2">
                 Ready to Start Your Journey?
               </h4>
-              <button className="bg-blue-600 text-white text-sm px-6 py-3 rounded-md w-full hover:bg-blue-700 transition-colors">
+              <button onClick={() => router.push(`/signup?url=${encodeURIComponent(formData.uniqueUrl)}`)} className="bg-blue-600 text-white text-sm px-6 py-3 rounded-md w-full hover:bg-blue-700 transition-colors">
                 Get Started
               </button>
             </div>

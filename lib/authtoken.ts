@@ -2,7 +2,7 @@ import * as jose from "jose";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
 
-export const generateToken = async (data: any, Time: "7d" | "30d") => {
+export const generateToken = async (data: any, Time: "7d" | "30d" | "1d") => {
   const secret = new TextEncoder().encode(process.env.JWT_SECRET!);
   const token = await new jose.SignJWT({ data })
     .setProtectedHeader({ alg: "HS256" })

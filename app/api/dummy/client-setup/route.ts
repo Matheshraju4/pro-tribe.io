@@ -182,13 +182,13 @@ export async function POST(request: NextRequest) {
           name: `${client.firstName} ${client.lastName}`,
           email: client.email,
         },
-        sessions: sessions.map(s => ({
+        sessions: sessions.map((s) => ({
           id: s.id,
           name: s.sessionName,
           duration: s.sessionDuration,
           price: s.sessionPrice,
         })),
-        appointments: appointments.map(a => ({
+        appointments: appointments.map((a) => ({
           id: a.id,
           name: a.appointmentName,
           date: a.appointmentDate,
@@ -196,9 +196,9 @@ export async function POST(request: NextRequest) {
           endTime: a.endTime,
           status: a.status,
           paidStatus: a.appointpaidStatus,
-          sessionName: a.session.sessionName,
+          sessionName: a.session?.sessionName || "Unknown Session",
         })),
-      }
+      },
     });
 
   } catch (error) {
@@ -259,7 +259,7 @@ export async function GET(request: NextRequest) {
         email: client.email,
         trainer: client.trainer,
       },
-      appointments: appointments.map(a => ({
+      appointments: appointments.map((a) => ({
         id: a.id,
         name: a.appointmentName,
         date: a.appointmentDate,
@@ -267,8 +267,8 @@ export async function GET(request: NextRequest) {
         endTime: a.endTime,
         status: a.status,
         paidStatus: a.appointpaidStatus,
-        sessionName: a.session.sessionName,
-      }))
+        sessionName: a.session?.sessionName || "Unknown Session",
+      })),
     });
 
   } catch (error) {

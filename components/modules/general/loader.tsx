@@ -184,7 +184,7 @@ export const ButtonLoader = ({ text = "Loading..." }: { text?: string }) => (
 export default Loader;
 
 
-export const NormalLoader = ({ text = "Loading..." }: { text?: string }) => {
+export const NormalLoader = ({ text = "Loading...", type = "text", className }: { text?: string, type?: "icon" | "text", className?: string }) => {
   const [activeIcon, setActiveIcon] = useState(0);
 
   const icons = [
@@ -209,7 +209,13 @@ export const NormalLoader = ({ text = "Loading..." }: { text?: string }) => {
   const CurrentIcon = icons[activeIcon].Icon;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+    type === "icon" ? (
+      <span className="flex gap-2 ">
+        <CurrentIcon className={cn("h-4 w-4  text-white")} />
+        <p> {text}</p>
+      </span>
+    ) : (
+      <div className={cn("flex flex-col items-center justify-center min-h-[400px] gap-4", className)}>
       <div className="relative">
         <CurrentIcon
           className="w-12 h-12 text-primary animate-pulse"
@@ -218,5 +224,6 @@ export const NormalLoader = ({ text = "Loading..." }: { text?: string }) => {
       </div>
       <p className="text-lg font-medium text-gray-700">{text}</p>
     </div>
+      )
   );
 };

@@ -54,7 +54,7 @@ export default function LoginForm() {
       if (response.status === 200) {
         toast.success("Login successfull!");
 
-        router.push("/trainer/sessions");
+        router.push("/trainer/");
       } else {
         toast.error("Failed to login. Please try again.");
       }
@@ -185,8 +185,9 @@ export default function LoginForm() {
                           {...field}
                           className="h-11 sm:h-12 pl-9 sm:pl-10 pr-10 border-gray-300 focus:border-primary focus:ring-primary text-sm sm:text-base"
                         />
-                        <button
-                          type="button"
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 p-1"
                         >
@@ -195,7 +196,7 @@ export default function LoginForm() {
                           ) : (
                             <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
                           )}
-                        </button>
+                        </Button>
                       </div>
                     </FormControl>
                     <FormMessage />

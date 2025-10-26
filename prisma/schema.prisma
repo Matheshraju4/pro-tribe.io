@@ -20,6 +20,7 @@ model Trainer {
   email           String            @unique
   mobileNumber    String
   password        String?
+  isVerified      Boolean           @default(false)
   age             Int?
   gender          String?
   timezone        String?           @default("UTC")
@@ -346,6 +347,8 @@ model Client {
   firstName     String
   lastName      String
   email         String    @unique
+  password      String?
+  isVerified    Boolean   @default(false)
   phone         String?
   company       String?
   address       String?

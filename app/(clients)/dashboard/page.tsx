@@ -1,257 +1,238 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { setHours, setMinutes } from "date-fns";
-import { EventCalendar, type CalendarEvent } from "@/components/event-calendar";
-import { NormalLoader } from "@/components/modules/general/loader";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import {
+    Calendar,
+    Utensils,
+    Plus,
+    MessageSquare,
+    CheckCircle2,
+    ShoppingCart,
+    Mail,
+    LayoutDashboard,
+} from "lucide-react";
 
-// Define the appointment data structure from the API response
-interface AppointmentData {
-    id: string;
-    appointmentName: string;
-    appointmentDescription?: string;
-    appointmentDate: string;
-    appointmentPrice?: string;
-    location?: string;
-    meetingUrl?: string;
-    startTime: string;
-    endTime: string;
-    appointpaidStatus: "Paid" | "Unpaid";
-    status: "Scheduled" | "Cancelled" | "Completed";
-    appointmentLocation: string;
-    trainerId: string;
-    clientId: string;
-    sessionId: string;
-    createdAt: string;
-    updatedAt: string;
-    trainer: {
-        id: string;
-        name: string;
-        email: string;
-    };
-    session: {
-        id: string;
-        sessionName: string;
-        sessionDescription?: string;
-    };
-}
-
-// Function to convert 12-hour time format to 24-hour format
-const convertTo24Hour = (
-    time12h: string
-): { hours: number; minutes: number } => {
-    const [time, modifier] = time12h.split(" ");
-    let [hours, minutes] = time.split(":").map(Number);
-
-    if (modifier === "PM" && hours !== 12) {
-        hours += 12;
-    } else if (modifier === "AM" && hours === 12) {
-        hours = 0;
-    }
-
-    return { hours, minutes };
-};
-
-// Function to transform appointment data to calendar events
-const transformAppointmentToEvent = (
-    appointment: AppointmentData
-): CalendarEvent => {
-    // Parse the appointment date
-    const appointmentDate = new Date(appointment.appointmentDate);
-
-    // Convert start and end times to 24-hour format
-    const startTime = convertTo24Hour(appointment.startTime);
-    const endTime = convertTo24Hour(appointment.endTime);
-
-    // Create start and end dates with proper times
-    const startDate = setMinutes(
-        setHours(appointmentDate, startTime.hours),
-        startTime.minutes
-    );
-    const endDate = setMinutes(
-        setHours(appointmentDate, endTime.hours),
-        endTime.minutes
-    );
-
-    // Determine color based on status
-    const getStatusColor = (
-        status: string,
-        paidStatus: string
-    ): CalendarEvent["color"] => {
-        if (status === "Cancelled") return "rose";
-        if (status === "Completed") return "emerald";
-        if (paidStatus === "Paid") return "sky";
-        return "amber";
-    };
-
-    // Create trainer name for display
-    const trainerName = appointment.trainer.name;
-
-    // Create title with session name and trainer
-    const title = `${appointment.session.sessionName} with ${trainerName}`;
-
-    return {
-        id: appointment.id,
-        title,
-        description:
-            appointment.appointmentDescription ||
-            appointment.session.sessionDescription,
-        start: startDate,
-        end: endDate,
-        allDay: false,
-        color: getStatusColor(appointment.status, appointment.appointpaidStatus),
-        location: appointment.appointmentLocation,
-    };
+// Static data for demo
+const staticData = {
+    userName: "Olivia",
+    upcomingAppointments: [
+        {
+            id: "1",
+            title: "Personal Training",
+            trainer: "John Doe",
+            date: "Tomorrow, 10:00 AM",
+            icon: Calendar,
+        },
+        {
+            id: "2",
+            title: "Nutrition Consultation",
+            trainer: "Jane Smith",
+            date: "Friday, 2:00 PM",
+            icon: Utensils,
+        },
+    ],
+    services: [
+        {
+            id: "1",
+            name: "10-Session Pack",
+            description: "7 sessions remaining",
+            progress: 70,
+        },
+        {
+            id: "2",
+            name: "Monthly Nutrition Plan",
+            description: "Active until Oct 31",
+            progress: 85,
+        },
+    ],
+    activities: [
+        {
+            id: "1",
+            type: "completed",
+            message: "Completed: Personal Training on Sep 25, 2023",
+            time: "2 days ago",
+            icon: CheckCircle2,
+            color: "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400",
+        },
+        {
+            id: "2",
+            type: "purchase",
+            message: "Purchased: 10-Session Pack on Sep 20, 2023",
+            time: "1 week ago",
+            icon: ShoppingCart,
+            color: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400",
+        },
+        {
+            id: "3",
+            type: "message",
+            message: "Message sent to John Doe on Sep 18, 2023",
+            time: "1.5 weeks ago",
+            icon: Mail,
+            color: "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400",
+        },
+        {
+            id: "4",
+            type: "completed",
+            message: "Completed: Nutrition Consultation on Sep 15, 2023",
+            time: "2 weeks ago",
+            icon: CheckCircle2,
+            color: "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400",
+        },
+    ],
 };
 
 export default function DashboardPage() {
-    const [events, setEvents] = useState<CalendarEvent[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    // Fetch appointments from the API
-    useEffect(() => {
-        fetchAppointments();
-    }, []);
-
-    const handleEventAdd = (event: CalendarEvent) => {
-        setEvents([...events, event]);
-        // Refresh the appointments list to get the latest data
-        fetchAppointments();
-    };
-
-    const handleEventUpdate = (updatedEvent: CalendarEvent) => {
-        setEvents(
-            events.map((event) =>
-                event.id === updatedEvent.id ? updatedEvent : event
-            )
-        );
-        // Refresh the appointments list to get the latest data
-        fetchAppointments();
-    };
-
-    const handleEventDelete = (eventId: string) => {
-        setEvents(events.filter((event) => event.id !== eventId));
-        // Refresh the appointments list to get the latest data
-        fetchAppointments();
-    };
-
-    // Function to refresh appointments from API
-    const fetchAppointments = async () => {
-        try {
-            setLoading(true);
-            console.log("Fetching appointments...");
-
-            const response = await fetch("/api/appointments/client");
-            console.log("Response status:", response.status);
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch appointments: ${response.status}`);
-            }
-
-            const data = await response.json();
-            console.log("Response data:", data);
-
-            if (data.success && data.appointments) {
-                console.log("Found appointments:", data.appointments.length);
-                // Transform appointments to calendar events
-                const calendarEvents = data.appointments.map(
-                    transformAppointmentToEvent
-                );
-                console.log("Transformed events:", calendarEvents);
-                setEvents(calendarEvents);
-            } else {
-                console.log("No appointments found or error:", data.error);
-                setEvents([]);
-                if (data.error) {
-                    setError(data.error);
-                }
-            }
-        } catch (err) {
-            console.error("Error fetching appointments:", err);
-            setError(err instanceof Error ? err.message : "An error occurred");
-            setEvents([]); // Clear events on error
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Show loading state
-    if (loading) {
-        return <NormalLoader />;
-    }
-
-    // Show error state
-    if (error) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-96">
-                <div className="text-center">
-                    <div className="text-red-500 mb-4">
-                        <svg
-                            className="w-16 h-16 mx-auto"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={1}
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-                            />
-                        </svg>
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                        Error Loading Appointments
-                    </h3>
-                    <p className="text-gray-500 mb-4">{error}</p>
-                    <button
-                        onClick={fetchAppointments}
-                        className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="flex flex-col p-1 sm:p-4 md:p-8">
-            {events.length === 0 ? (
-                <div className="flex flex-col items-center justify-center min-h-96">
-                    <div className="text-center">
-                        <div className="text-gray-400 mb-4">
-                            <svg
-                                className="w-16 h-16 mx-auto"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={1}
-                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                />
-                            </svg>
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">
-                            No Appointments Found
-                        </h3>
-                        <p className="text-gray-500">
-                            You don't have any appointments scheduled yet.
+        <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-7xl mx-auto">
+                {/* Welcome Section */}
+                <div className="flex flex-wrap justify-between gap-4 mb-8">
+                    <div className="flex min-w-72 flex-col gap-3">
+                        <h1 className="text-4xl font-black leading-tight tracking-tight">
+                            Welcome back, {staticData.userName}!
+                        </h1>
+                        <p className="text-base text-muted-foreground">
+                            Here's a look at your progress and upcoming appointments.
                         </p>
                     </div>
+
                 </div>
-            ) : (
-                <EventCalendar
-                    events={events}
-                    onEventAdd={handleEventAdd}
-                    onEventUpdate={handleEventUpdate}
-                    onEventDelete={handleEventDelete}
-                />
-            )}
+
+                {/* Main Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Upcoming Appointments Widget */}
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="text-xl">
+                                Upcoming Appointments
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {staticData.upcomingAppointments.map((appointment) => {
+                                const Icon = appointment.icon;
+                                return (
+                                    <div
+                                        key={appointment.id}
+                                        className="flex items-center gap-4 bg-muted/50 px-4 py-3 rounded-lg justify-between"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex items-center justify-center rounded-lg bg-primary/20 text-primary shrink-0 size-12">
+                                                <Icon className="h-6 w-6" />
+                                            </div>
+                                            <div className="flex flex-col justify-center">
+                                                <p className="font-medium line-clamp-1">
+                                                    {appointment.title}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    with {appointment.trainer}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0">
+                                            <p className="text-sm text-muted-foreground">
+                                                {appointment.date}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </CardContent>
+                    </Card>
+
+                    {/* Quick Actions Widget */}
+                    <Card className="flex flex-col justify-between">
+                        <CardHeader>
+                            <CardTitle className="text-xl">Quick Actions</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <Button className="w-full gap-2" size="lg">
+                                <Plus className="h-5 w-5" />
+                                Book New Appointment
+                            </Button>
+                            <Button
+                                className="w-full gap-2"
+                                variant="secondary"
+                                size="lg"
+                            >
+                                <MessageSquare className="h-5 w-5" />
+                                Contact Trainer
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    {/* My Services Widget */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">My Services</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {staticData.services.map((service) => (
+                                <div key={service.id} className="space-y-2">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-semibold">
+                                                {service.name}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {service.description}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Progress value={service.progress} className="h-2" />
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+
+                    {/* Progress Tracker Widget */}
+                    <Card className="lg:col-span-2">
+                        <CardHeader>
+                            <CardTitle className="text-xl">Progress Tracker</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
+                                <span className="text-muted-foreground">
+                                    Chart or graph visualization here
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Activity History Widget */}
+                    <Card className="lg:col-span-3">
+                        <CardHeader>
+                            <CardTitle className="text-xl">Activity History</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="max-h-80 overflow-y-auto pr-4 space-y-4">
+                                {staticData.activities.map((activity) => {
+                                    const Icon = activity.icon;
+                                    return (
+                                        <div
+                                            key={activity.id}
+                                            className="flex items-center gap-4"
+                                        >
+                                            <div
+                                                className={`flex items-center justify-center shrink-0 size-10 rounded-full ${activity.color}`}
+                                            >
+                                                <Icon className="h-5 w-5" />
+                                            </div>
+                                            <p className="text-sm flex-1">
+                                                {activity.message}
+                                            </p>
+                                            <span className="text-xs text-muted-foreground">
+                                                {activity.time}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
         </div>
     );
 }
