@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -12,78 +13,140 @@ import {
     ShoppingCart,
     Mail,
     LayoutDashboard,
+    XCircle,
+    Clock,
 } from "lucide-react";
+import { NormalLoader } from "@/components/modules/general/loader";
 
-// Static data for demo
-const staticData = {
-    userName: "Olivia",
-    upcomingAppointments: [
-        {
-            id: "1",
-            title: "Personal Training",
-            trainer: "John Doe",
-            date: "Tomorrow, 10:00 AM",
-            icon: Calendar,
-        },
-        {
-            id: "2",
-            title: "Nutrition Consultation",
-            trainer: "Jane Smith",
-            date: "Friday, 2:00 PM",
-            icon: Utensils,
-        },
-    ],
-    services: [
-        {
-            id: "1",
-            name: "10-Session Pack",
-            description: "7 sessions remaining",
-            progress: 70,
-        },
-        {
-            id: "2",
-            name: "Monthly Nutrition Plan",
-            description: "Active until Oct 31",
-            progress: 85,
-        },
-    ],
-    activities: [
-        {
-            id: "1",
-            type: "completed",
-            message: "Completed: Personal Training on Sep 25, 2023",
-            time: "2 days ago",
-            icon: CheckCircle2,
-            color: "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400",
-        },
-        {
-            id: "2",
-            type: "purchase",
-            message: "Purchased: 10-Session Pack on Sep 20, 2023",
-            time: "1 week ago",
-            icon: ShoppingCart,
-            color: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400",
-        },
-        {
-            id: "3",
-            type: "message",
-            message: "Message sent to John Doe on Sep 18, 2023",
-            time: "1.5 weeks ago",
-            icon: Mail,
-            color: "bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400",
-        },
-        {
-            id: "4",
-            type: "completed",
-            message: "Completed: Nutrition Consultation on Sep 15, 2023",
-            time: "2 weeks ago",
-            icon: CheckCircle2,
-            color: "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400",
-        },
-    ],
+// Type definitions
+interface DashboardData {
+    client: {
+        id: string;
+        name: string;
+        email: string;
+        phone: string | null;
+    };
+    trainer: {
+        id: string;
+        name: string;
+        email: string;
+        mobileNumber: string | null;
+    } | null;
+    upcomingAppointments: Array<{
+        id: string;
+        title: string;
+        trainer: string;
+        date: string;
+        status: string;
+        paidStatus: string;
+        location: string;
+    }>;
+    services: Array<{
+        id: string;
+        name: string;
+        description: string;
+        progress: number;
+        totalSessions?: number;
+        completedSessions?: number;
+    }>;
+    activities: Array<{
+        id: string;
+        type: string;
+        message: string;
+        time: string;
+        date: string;
+    }>;
+    stats: {
+        totalAppointments: number;
+        completedAppointments: number;
+        upcomingAppointments: number;
+        cancelledAppointments: number;
+    };
+}
+
+// Helper function to get icon for activity type
+const getActivityIcon = (type: string) => {
+    switch (type) {
+        case "completed":
+            return CheckCircle2;
+        case "cancelled":
+            return XCircle;
+        case "scheduled":
+            return Clock;
+        default:
+            return Calendar;
+    }
+};
+
+// Helper function to get color for activity type
+const getActivityColor = (type: string) => {
+    switch (type) {
+        case "completed":
+            return "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400";
+        case "cancelled":
+            return "bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400";
+        case "scheduled":
+            return "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400";
+        default:
+            return "bg-gray-100 dark:bg-gray-900/50 text-gray-600 dark:text-gray-400";
+    }
 };
 
 export default function DashboardPage() {
+    const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const fetchDashboardData = async () => {
+        try {
+            setLoading(true);
+            const response = await fetch("/api/clients/dashboard/client");
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                setDashboardData(data.data);
+            } else {
+                setError(data.error || "Failed to load dashboard data");
+            }
+        } catch (err) {
+            console.error("Dashboard fetch error:", err);
+            setError("An error occurred while loading dashboard data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Loading state
+    if (loading) {
+        return <NormalLoader />;
+    }
+
+    // Error state
+    if (error || !dashboardData) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <div className="text-center">
+                    <div className="text-red-500 mb-4">
+                        <XCircle className="w-16 h-16 mx-auto" />
+                    </div>
+                    <h3 className="text-lg font-medium mb-2">
+                        Error Loading Dashboard
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                        {error || "Failed to load dashboard data"}
+                    </p>
+                    <Button onClick={fetchDashboardData}>
+                        Try Again
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
             <div className="max-w-7xl mx-auto">
@@ -91,13 +154,12 @@ export default function DashboardPage() {
                 <div className="flex flex-wrap justify-between gap-4 mb-8">
                     <div className="flex min-w-72 flex-col gap-3">
                         <h1 className="text-4xl font-black leading-tight tracking-tight">
-                            Welcome back, {staticData.userName}!
+                            Welcome back, {dashboardData.client.name.split(' ')[0]}!
                         </h1>
                         <p className="text-base text-muted-foreground">
                             Here's a look at your progress and upcoming appointments.
                         </p>
                     </div>
-
                 </div>
 
                 {/* Main Grid */}
@@ -110,16 +172,15 @@ export default function DashboardPage() {
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {staticData.upcomingAppointments.map((appointment) => {
-                                const Icon = appointment.icon;
-                                return (
+                            {dashboardData.upcomingAppointments.length > 0 ? (
+                                dashboardData.upcomingAppointments.map((appointment) => (
                                     <div
                                         key={appointment.id}
                                         className="flex items-center gap-4 bg-muted/50 px-4 py-3 rounded-lg justify-between"
                                     >
                                         <div className="flex items-center gap-4">
                                             <div className="flex items-center justify-center rounded-lg bg-primary/20 text-primary shrink-0 size-12">
-                                                <Icon className="h-6 w-6" />
+                                                <Calendar className="h-6 w-6" />
                                             </div>
                                             <div className="flex flex-col justify-center">
                                                 <p className="font-medium line-clamp-1">
@@ -136,8 +197,13 @@ export default function DashboardPage() {
                                             </p>
                                         </div>
                                     </div>
-                                );
-                            })}
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                    <p>No upcoming appointments</p>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -168,21 +234,27 @@ export default function DashboardPage() {
                             <CardTitle className="text-xl">My Services</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-6">
-                            {staticData.services.map((service) => (
-                                <div key={service.id} className="space-y-2">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-semibold">
-                                                {service.name}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {service.description}
-                                            </p>
+                            {dashboardData.services.length > 0 ? (
+                                dashboardData.services.map((service) => (
+                                    <div key={service.id} className="space-y-2">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-semibold">
+                                                    {service.name}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {service.description}
+                                                </p>
+                                            </div>
                                         </div>
+                                        <Progress value={service.progress} className="h-2" />
                                     </div>
-                                    <Progress value={service.progress} className="h-2" />
+                                ))
+                            ) : (
+                                <div className="text-center py-4 text-muted-foreground">
+                                    <p>No services purchased yet</p>
                                 </div>
-                            ))}
+                            )}
                         </CardContent>
                     </Card>
 
@@ -207,27 +279,35 @@ export default function DashboardPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="max-h-80 overflow-y-auto pr-4 space-y-4">
-                                {staticData.activities.map((activity) => {
-                                    const Icon = activity.icon;
-                                    return (
-                                        <div
-                                            key={activity.id}
-                                            className="flex items-center gap-4"
-                                        >
+                                {dashboardData.activities.length > 0 ? (
+                                    dashboardData.activities.map((activity) => {
+                                        const Icon = getActivityIcon(activity.type);
+                                        const color = getActivityColor(activity.type);
+                                        return (
                                             <div
-                                                className={`flex items-center justify-center shrink-0 size-10 rounded-full ${activity.color}`}
+                                                key={activity.id}
+                                                className="flex items-center gap-4"
                                             >
-                                                <Icon className="h-5 w-5" />
+                                                <div
+                                                    className={`flex items-center justify-center shrink-0 size-10 rounded-full ${color}`}
+                                                >
+                                                    <Icon className="h-5 w-5" />
+                                                </div>
+                                                <p className="text-sm flex-1">
+                                                    {activity.message}
+                                                </p>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {activity.time}
+                                                </span>
                                             </div>
-                                            <p className="text-sm flex-1">
-                                                {activity.message}
-                                            </p>
-                                            <span className="text-xs text-muted-foreground">
-                                                {activity.time}
-                                            </span>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })
+                                ) : (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        <Clock className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                        <p>No activity history yet</p>
+                                    </div>
+                                )}
                             </div>
                         </CardContent>
                     </Card>

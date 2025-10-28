@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
         role: "Client",
         email: client.email,
         userId: client.id,
+        trainerId: client.trainerId,
       },
       rememberMe ? "30d" : "7d"
     );

@@ -47,3 +47,25 @@ export const getSession = async (
     return null;
   }
 };
+
+
+export const getClientSession = async (
+  req: NextRequest
+): Promise<{
+  data: { role: string; email: string; userId: string; trainerId: string };
+  exp: number;
+} | null> => {
+  const cookiesStore = await cookies();
+
+  if (cookiesStore.get("proTribe-client-authToken")?.value) {
+    const isVerified = await verifyToken(
+      cookiesStore.get("proTribe-client-authToken")?.value as string
+    );
+    return isVerified as {
+      data: { role: string; email: string; userId: string; trainerId: string };
+      exp: number;
+    };
+  } else {
+    return null;
+  }
+};

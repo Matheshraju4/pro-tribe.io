@@ -360,6 +360,7 @@ model Client {
   trainer       Trainer   @relation(fields: [trainerId], references: [id])
   clientProgress ClientProgress[]
   appointments  Appointment[]
+  purchases     Purchase[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -442,4 +443,72 @@ model ProgressEntry {
   // Indexes for better query performance
   @@index([clientProgressId, entryDate])
   @@index([entryDate])
+}
+
+model Purchase {
+  id                String         @id @default(uuid())
+  
+  // Client information
+  clientId          String
+  client            Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  
+  // Trainer information
+  trainerId         String
+  
+  // Purchase details
+  itemType          PurchaseType   // Session or Package
+  itemId            String         // ID of the session or package
+  itemName          String         // Name of the session or package
+  itemDescription   String?        // Description
+  
+  // Pricing
+  originalPrice     String
+  discountAmount    String?
+  finalPrice        String
+  
+  // Payment
+  paymentStatus     PaymentStatus  @default(Pending)
+  paymentMethod     String?
+  transactionId     String?        @unique
+  
+  // Status
+  status            PurchaseStatus @default(Active)
+  
+  // Validity (for packages)
+  validFrom         DateTime       @default(now())
+  validUntil        DateTime?
+  
+  // Sessions remaining (for packages)
+  sessionsTotal     Int?
+  sessionsUsed      Int?           @default(0)
+  sessionsRemaining Int?
+  
+  // Metadata
+  purchaseDate      DateTime       @default(now())
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  
+  @@index([clientId])
+  @@index([trainerId])
+  @@index([itemType, itemId])
+  @@index([purchaseDate])
+}
+
+enum PurchaseType {
+  Session
+  Package
+}
+
+enum PaymentStatus {
+  Pending
+  Paid
+  Failed
+  Refunded
+}
+
+enum PurchaseStatus {
+  Active
+  Completed
+  Expired
+  Cancelled
 }

@@ -8,7 +8,7 @@ interface VerificationResult {
   error?: string;
   role: string | null;
   message?: string;
-  data?: { email: string; userId: string };
+  data?: { email: string; userId: string; trainerId?: string };
 }
 
 export async function GET(request: NextRequest) {
@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
           role: result.role,
           email: result.data?.email,
           userId: result.data?.userId,
+          trainerId: result.data?.trainerId,
         },
         "7d"
       );
@@ -107,7 +108,11 @@ async function verifyEmail(token: string): Promise<VerificationResult> {
           success: true,
           role: "Client",
           message: "Email already verified",
-          data: { email: client.email, userId: client.id },
+          data: {
+            email: client.email,
+            userId: client.id,
+            trainerId: client.trainerId,
+          },
         };
       }
 
@@ -121,7 +126,11 @@ async function verifyEmail(token: string): Promise<VerificationResult> {
         success: true,
         role: "Client",
         message: "Email verified successfully",
-        data: { email: client.email, userId: client.id },
+        data: {
+          email: client.email,
+          userId: client.id,
+          trainerId: client.trainerId,
+        },
       };
     }
 
