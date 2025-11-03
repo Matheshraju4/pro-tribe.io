@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import {
     Calendar,
     Utensils,
@@ -15,8 +18,26 @@ import {
     LayoutDashboard,
     XCircle,
     Clock,
+    TrendingUp,
+    User,
+    Phone,
 } from "lucide-react";
 import { NormalLoader } from "@/components/modules/general/loader";
+import {
+    LineChart,
+    Line,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    Legend,
+    ResponsiveContainer,
+    Area,
+    AreaChart,
+} from "recharts";
+import axios from "axios";
 
 // Type definitions
 interface DashboardData {
@@ -64,6 +85,32 @@ interface DashboardData {
     };
 }
 
+interface ProgressTracker {
+    id: string;
+    trackerId: string;
+    name: string;
+    description: string | null;
+    type: string;
+    unit: string | null;
+    minValue: number | null;
+    maxValue: number | null;
+    trueLabel: string | null;
+    falseLabel: string | null;
+    ratingScale: number | null;
+    currentValue: any;
+    targetValue: any;
+    progress: number;
+    trend: string;
+    assignedBy: string;
+    assignedDate: string;
+    entries: Array<{
+        id: string;
+        date: string;
+        value: any;
+        note: string | null;
+    }>;
+}
+
 // Helper function to get icon for activity type
 const getActivityIcon = (type: string) => {
     switch (type) {
@@ -93,12 +140,16 @@ const getActivityColor = (type: string) => {
 };
 
 export default function DashboardPage() {
+    const router = useRouter();
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+    const [progressTrackers, setProgressTrackers] = useState<ProgressTracker[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingTrackers, setLoadingTrackers] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchDashboardData();
+        fetchProgressTrackers();
     }, []);
 
     const fetchDashboardData = async () => {
@@ -120,9 +171,24 @@ export default function DashboardPage() {
         }
     };
 
+    const fetchProgressTrackers = async () => {
+        try {
+            setLoadingTrackers(true);
+            const response = await axios.get("/api/progress-trackers/client");
+
+            if (response.data.success) {
+                setProgressTrackers(response.data.trackers || []);
+            }
+        } catch (err) {
+            console.error("Failed to fetch progress trackers:", err);
+        } finally {
+            setLoadingTrackers(false);
+        }
+    };
+
     // Loading state
     if (loading) {
-        return <NormalLoader />;
+        return <NormalLoader text="Loading dashboard data..." className="h-screen" />;
     }
 
     // Error state
@@ -207,24 +273,95 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Quick Actions Widget */}
-                    <Card className="flex flex-col justify-between">
+                    {/* Trainer Details & Quick Actions Widget */}
+                    <Card className="flex flex-col">
                         <CardHeader>
-                            <CardTitle className="text-xl">Quick Actions</CardTitle>
+                            <CardTitle className="text-xl">Your Trainer</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
-                            <Button className="w-full gap-2" size="lg">
-                                <Plus className="h-5 w-5" />
-                                Book New Appointment
-                            </Button>
-                            <Button
-                                className="w-full gap-2"
-                                variant="secondary"
-                                size="lg"
-                            >
-                                <MessageSquare className="h-5 w-5" />
-                                Contact Trainer
-                            </Button>
+                        <CardContent className="space-y-6">
+                            {/* Trainer Info */}
+                            {dashboardData.trainer ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <Avatar className="h-16 w-16">
+                                            <AvatarImage src="/api/placeholder/64/64" />
+                                            <AvatarFallback className="text-lg bg-primary/10 text-primary">
+                                                {dashboardData.trainer.name
+                                                    .split(' ')
+                                                    .map(n => n[0])
+                                                    .join('')
+                                                    .toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="flex-1">
+                                            <h3 className="font-semibold text-lg">
+                                                {dashboardData.trainer.name}
+                                            </h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                Personal Trainer
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <Separator />
+
+                                    <div className="space-y-3">
+                                        <div className="flex items-center gap-3 text-sm">
+                                            <Mail className="h-4 w-4 text-muted-foreground" />
+                                            <a
+                                                href={`mailto:${dashboardData.trainer.email}`}
+                                                className="text-primary hover:underline"
+                                            >
+                                                {dashboardData.trainer.email}
+                                            </a>
+                                        </div>
+                                        {dashboardData.trainer.mobileNumber && (
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                                <a
+                                                    href={`tel:${dashboardData.trainer.mobileNumber}`}
+                                                    className="text-primary hover:underline"
+                                                >
+                                                    {dashboardData.trainer.mobileNumber}
+                                                </a>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <Separator />
+                                </div>
+                            ) : (
+                                <div className="text-center py-4 text-muted-foreground">
+                                    <User className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                    <p className="text-sm">No trainer assigned</p>
+                                </div>
+                            )}
+
+                            {/* Quick Actions */}
+                            <div className="space-y-3">
+                                <Button
+                                    className="w-full gap-2"
+                                    size="lg"
+                                    onClick={() => router.push('/credits-bundles')}
+                                >
+                                    <Plus className="h-5 w-5" />
+                                    Book New Appointment
+                                </Button>
+                                <Button
+                                    className="w-full gap-2"
+                                    variant="secondary"
+                                    size="lg"
+                                    onClick={() => {
+                                        if (dashboardData.trainer?.email) {
+                                            window.location.href = `mailto:${dashboardData.trainer.email}`;
+                                        }
+                                    }}
+                                    disabled={!dashboardData.trainer}
+                                >
+                                    <MessageSquare className="h-5 w-5" />
+                                    Contact Trainer
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -261,14 +398,226 @@ export default function DashboardPage() {
                     {/* Progress Tracker Widget */}
                     <Card className="lg:col-span-2">
                         <CardHeader>
-                            <CardTitle className="text-xl">Progress Tracker</CardTitle>
+                            <CardTitle className="text-xl flex items-center gap-2">
+                                <TrendingUp className="h-5 w-5" />
+                                Progress Tracker
+                            </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-64 bg-muted rounded-lg flex items-center justify-center">
-                                <span className="text-muted-foreground">
-                                    Chart or graph visualization here
-                                </span>
-                            </div>
+                            {loadingTrackers ? (
+                                <div className="h-64 flex items-center justify-center">
+                                    <NormalLoader text="Loading trackers..." />
+                                </div>
+                            ) : progressTrackers.length === 0 ? (
+                                <div className="h-64 bg-muted rounded-lg flex flex-col items-center justify-center">
+                                    <TrendingUp className="h-12 w-12 text-muted-foreground mb-2 opacity-50" />
+                                    <span className="text-muted-foreground">
+                                            No progress trackers assigned yet
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {progressTrackers.slice(0, 2).map((tracker) => (
+                                            <div key={tracker.id} className="space-y-3">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <h3 className="font-semibold text-base">{tracker.name}</h3>
+                                                        {tracker.description && (
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {tracker.description}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    {tracker.type === "numeric" && tracker.currentValue !== null && (
+                                                        <div className="text-right">
+                                                            <p className="text-2xl font-bold text-primary">
+                                                                {typeof tracker.currentValue === 'number'
+                                                                    ? tracker.currentValue.toFixed(1)
+                                                                    : tracker.currentValue}
+                                                                {tracker.unit && (
+                                                                    <span className="text-sm text-muted-foreground ml-1">
+                                                                        {tracker.unit}
+                                                                    </span>
+                                                                )}
+                                                            </p>
+                                                            {tracker.trend !== "stable" && (
+                                                                <p className={`text-xs ${tracker.trend === "up"
+                                                                    ? "text-green-600"
+                                                                    : "text-red-600"
+                                                                    }`}>
+                                                                    {tracker.trend === "up" ? "↑" : "↓"} Trending {tracker.trend}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Render chart based on tracker type */}
+                                                {tracker.entries.length > 0 && (
+                                                    <div className="h-48">
+                                                        {tracker.type === "numeric" && (
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <AreaChart
+                                                                    data={tracker.entries
+                                                                        .slice()
+                                                                        .reverse()
+                                                                        .map(entry => ({
+                                                                            date: new Date(entry.date).toLocaleDateString('en-US', {
+                                                                                month: 'short',
+                                                                                day: 'numeric'
+                                                                            }),
+                                                                            value: Number(entry.value),
+                                                                            target: tracker.targetValue || tracker.maxValue,
+                                                                        }))}
+                                                                >
+                                                                    <defs>
+                                                                        <linearGradient id={`gradient-${tracker.id}`} x1="0" y1="0" x2="0" y2="1">
+                                                                            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                                                                            <stop offset="95%" stopColor="#8884d8" stopOpacity={0.1} />
+                                                                        </linearGradient>
+                                                                    </defs>
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                                                    <XAxis
+                                                                        dataKey="date"
+                                                                        tick={{ fontSize: 12 }}
+                                                                        stroke="#888"
+                                                                    />
+                                                                    <YAxis
+                                                                        tick={{ fontSize: 12 }}
+                                                                        stroke="#888"
+                                                                    />
+                                                                    <Tooltip
+                                                                        contentStyle={{
+                                                                            backgroundColor: 'white',
+                                                                            border: '1px solid #ccc',
+                                                                            borderRadius: '4px'
+                                                                        }}
+                                                                    />
+                                                                    <Area
+                                                                        type="monotone"
+                                                                        dataKey="value"
+                                                                        stroke="#8884d8"
+                                                                        strokeWidth={2}
+                                                                        fill={`url(#gradient-${tracker.id})`}
+                                                                        name={tracker.unit || "Value"}
+                                                                    />
+                                                                    {tracker.targetValue && (
+                                                                        <Line
+                                                                            type="monotone"
+                                                                            dataKey="target"
+                                                                            stroke="#82ca9d"
+                                                                            strokeWidth={2}
+                                                                            strokeDasharray="5 5"
+                                                                            dot={false}
+                                                                            name="Target"
+                                                                        />
+                                                                    )}
+                                                                </AreaChart>
+                                                            </ResponsiveContainer>
+                                                        )}
+
+                                                        {tracker.type === "boolean" && (
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <BarChart
+                                                                    data={tracker.entries
+                                                                        .slice()
+                                                                        .reverse()
+                                                                        .map(entry => ({
+                                                                            date: new Date(entry.date).toLocaleDateString('en-US', {
+                                                                                month: 'short',
+                                                                                day: 'numeric'
+                                                                            }),
+                                                                            value: entry.value ? 1 : 0,
+                                                                            label: entry.value ? (tracker.trueLabel || "Yes") : (tracker.falseLabel || "No"),
+                                                                        }))}
+                                                                >
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                                                    <XAxis
+                                                                        dataKey="date"
+                                                                        tick={{ fontSize: 12 }}
+                                                                        stroke="#888"
+                                                                    />
+                                                                    <YAxis
+                                                                        tick={{ fontSize: 12 }}
+                                                                        stroke="#888"
+                                                                        domain={[0, 1]}
+                                                                        ticks={[0, 1]}
+                                                                    />
+                                                                    <Tooltip
+                                                                        contentStyle={{
+                                                                            backgroundColor: 'white',
+                                                                            border: '1px solid #ccc',
+                                                                            borderRadius: '4px'
+                                                                        }}
+                                                                        formatter={(value: any, name: string, props: any) => [
+                                                                            props.payload.label,
+                                                                            "Status"
+                                                                        ]}
+                                                                    />
+                                                                    <Bar
+                                                                        dataKey="value"
+                                                                        fill="#8884d8"
+                                                                        radius={[8, 8, 0, 0]}
+                                                                    />
+                                                                </BarChart>
+                                                            </ResponsiveContainer>
+                                                        )}
+
+                                                        {tracker.type === "rating" && (
+                                                            <ResponsiveContainer width="100%" height="100%">
+                                                                <BarChart
+                                                                    data={tracker.entries
+                                                                        .slice()
+                                                                        .reverse()
+                                                                        .map(entry => ({
+                                                                            date: new Date(entry.date).toLocaleDateString('en-US', {
+                                                                                month: 'short',
+                                                                                day: 'numeric'
+                                                                            }),
+                                                                            rating: Number(entry.value),
+                                                                        }))}
+                                                                >
+                                                                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                                                    <XAxis
+                                                                        dataKey="date"
+                                                                        tick={{ fontSize: 12 }}
+                                                                        stroke="#888"
+                                                                    />
+                                                                    <YAxis
+                                                                        tick={{ fontSize: 12 }}
+                                                                        stroke="#888"
+                                                                        domain={[0, tracker.ratingScale || 5]}
+                                                                    />
+                                                                    <Tooltip
+                                                                        contentStyle={{
+                                                                            backgroundColor: 'white',
+                                                                            border: '1px solid #ccc',
+                                                                            borderRadius: '4px'
+                                                                        }}
+                                                                    />
+                                                                    <Bar
+                                                                        dataKey="rating"
+                                                                        fill="#fbbf24"
+                                                                        radius={[8, 8, 0, 0]}
+                                                                        name="Rating"
+                                                                    />
+                                                                </BarChart>
+                                                            </ResponsiveContainer>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+
+                                            {progressTrackers.length > 2 && (
+                                                <div className="text-center pt-2">
+                                                    <Button variant="link" className="text-sm">
+                                                        View all {progressTrackers.length} trackers →
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                            )}
                         </CardContent>
                     </Card>
 

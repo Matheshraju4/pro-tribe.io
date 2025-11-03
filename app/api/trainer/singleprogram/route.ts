@@ -63,7 +63,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // If not found in either
+    // If not found in packages, try memberships
+    const membershipItem = await prisma.membership.findFirst({
+      where: {
+        id: id,
+        trainerId: trainerId,
+        isActive: true,
+      },
+    });
+
+    if (membershipItem) {
+      return NextResponse.json(
+        {
+          success: true,
+          type: "membership",
+          data: membershipItem,
+        },
+        { status: 200 }
+      );
+    }
+
+    // If not found in any
     return NextResponse.json(
       { success: false, error: "Item not found" },
       { status: 404 }

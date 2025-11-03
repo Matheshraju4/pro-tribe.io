@@ -34,13 +34,17 @@ export async function GET(request: NextRequest) {
       trainerId = session.data.trainerId;
     }
 
-    // Fetch packages and sessions for the trainer
-    const [packages, sessions] = await Promise.all([
+    // Fetch packages, sessions, and memberships for the trainer
+    const [packages, sessions, memberships] = await Promise.all([
       prisma.package.findMany({
         where: { trainerId },
         orderBy: { createdAt: "desc" },
       }),
       prisma.session.findMany({
+        where: { trainerId, isActive: true },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.membership.findMany({
         where: { trainerId, isActive: true },
         orderBy: { createdAt: "desc" },
       }),
@@ -51,6 +55,7 @@ export async function GET(request: NextRequest) {
         success: true,
         packages,
         sessions,
+        memberships,
       },
       { status: 200 }
     );

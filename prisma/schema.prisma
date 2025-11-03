@@ -497,6 +497,7 @@ model Purchase {
 enum PurchaseType {
   Session
   Package
+  Membership
 }
 
 enum PaymentStatus {

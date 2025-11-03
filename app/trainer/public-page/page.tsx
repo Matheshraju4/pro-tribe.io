@@ -25,7 +25,7 @@ const PublicPage = () => {
     fetchData();
   }, []);
   return (
-    <div className="flex flex-col gap-4 max-w-7xl mx-auto px-3">
+    <div className="flex flex-col gap-4 w-full mx-auto px-3">
       {data && mode === null ? (
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-end gap-4">

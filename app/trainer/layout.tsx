@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/modules/general/app-sidebar";
+import { TrainerRightSidebar } from "@/components/modules/general/trainer-right-sidebar";
 import DynamicBreadCrumb from "@/components/modules/general/dynamic-breadcrumb";
 import {
   Breadcrumb,
@@ -28,6 +29,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </header>
         {children}
       </main>
+      <TrainerRightSidebar />
     </SidebarProvider>
   );
 }

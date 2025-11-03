@@ -42,6 +42,12 @@ import axios from "axios";
 import { toast } from "sonner";
 import { NormalLoader } from "@/components/modules/general/loader";
 import { AssignTrackerDialog } from "@/components/modules/pages/trainer/progress-management/assign-tracker-dialog";
+import {
+  ViewDetailsDialog,
+  EditTrackerDialog,
+  DeleteConfirmationDialog,
+  AddProgressEntryDialog,
+} from "@/components/modules/pages/trainer/progress-management/tracker-dialogs";
 
 interface ProgressTracker {
   id: string;
@@ -77,8 +83,17 @@ export default function ProgressManagement() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [sortBy, setSortBy] = useState("recent");
+  
+  // Dialog states
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [addEntryDialogOpen, setAddEntryDialogOpen] = useState(false);
+  
   const [selectedTracker, setSelectedTracker] = useState<ProgressTracker | null>(null);
+  const [selectedTrackerId, setSelectedTrackerId] = useState<string | null>(null);
+  
   const router = useRouter();
 
   useEffect(() => {
@@ -98,12 +113,33 @@ export default function ProgressManagement() {
     }
   };
 
+  // Handler functions
+  const handleViewDetails = (trackerId: string) => {
+    setSelectedTrackerId(trackerId);
+    setViewDialogOpen(true);
+  };
+
+  const handleEditTracker = (tracker: ProgressTracker) => {
+    setSelectedTracker(tracker);
+    setEditDialogOpen(true);
+  };
+
+  const handleDeleteTracker = (tracker: ProgressTracker) => {
+    setSelectedTracker(tracker);
+    setDeleteDialogOpen(true);
+  };
+
   const handleAssignTracker = (tracker: ProgressTracker) => {
     setSelectedTracker(tracker);
     setAssignDialogOpen(true);
   };
 
-  const handleAssignmentSuccess = () => {
+  const handleAddEntry = (tracker: ProgressTracker) => {
+    setSelectedTracker(tracker);
+    setAddEntryDialogOpen(true);
+  };
+
+  const handleDialogSuccess = () => {
     fetchTrackers(); // Refresh the trackers list
   };
 
@@ -411,19 +447,26 @@ export default function ProgressManagement() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleViewDetails(tracker.id)}>
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditTracker(tracker)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Edit Tracker
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleAddEntry(tracker)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Progress Entry
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleAssignTracker(tracker)}>
                         <Settings className="h-4 w-4 mr-2" />
                         Manage Clients
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive">
+                      <DropdownMenuItem 
+                        className="text-destructive"
+                        onClick={() => handleDeleteTracker(tracker)}
+                      >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
                       </DropdownMenuItem>
@@ -501,6 +544,7 @@ export default function ProgressManagement() {
                     variant="outline"
                     size="sm"
                     className="flex-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleViewDetails(tracker.id)}
                   >
                     <Eye className="h-4 w-4 mr-2" />
                     View
@@ -509,9 +553,10 @@ export default function ProgressManagement() {
                     variant="outline"
                     size="sm"
                     className="flex-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => handleAddEntry(tracker)}
                   >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Manage
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Entry
                   </Button>
                 </div>
               </div>
@@ -520,12 +565,39 @@ export default function ProgressManagement() {
         </div>
       )}
 
-      {/* Assignment Dialog */}
+      {/* Dialogs */}
+      <ViewDetailsDialog
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        trackerId={selectedTrackerId}
+      />
+
+      <EditTrackerDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        tracker={selectedTracker}
+        onSuccess={handleDialogSuccess}
+      />
+
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        tracker={selectedTracker}
+        onSuccess={handleDialogSuccess}
+      />
+
       <AssignTrackerDialog
         open={assignDialogOpen}
         onOpenChange={setAssignDialogOpen}
         tracker={selectedTracker}
-        onSuccess={handleAssignmentSuccess}
+        onSuccess={handleDialogSuccess}
+      />
+
+      <AddProgressEntryDialog
+        open={addEntryDialogOpen}
+        onOpenChange={setAddEntryDialogOpen}
+        tracker={selectedTracker}
+        onSuccess={handleDialogSuccess}
       />
     </div>
   );

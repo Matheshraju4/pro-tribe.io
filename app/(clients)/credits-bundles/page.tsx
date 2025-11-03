@@ -25,16 +25,28 @@ interface Package {
     validDays: string | null;
 }
 
+interface Membership {
+    id: string;
+    membershipName: string;
+    membershipDescription: string | null;
+    billingPeriod: 'Weekly' | 'Monthly' | 'Yearly';
+    weeklyPrice: string | null;
+    monthlyPrice: string | null;
+    yearlyPrice: string | null;
+    autoRenewal: boolean;
+    isActive: boolean;
+}
+
 const CreditsAndBundles = () => {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [packages, setPackages] = useState<Package[]>([]);
+    const [memberships, setMemberships] = useState<Membership[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     const router = useRouter();
 
-    const handleBooking = (id: string, title: string, type: "session" | "package") => {
-
+    const handleBooking = (id: string, title: string, type: "session" | "package" | "membership") => {
         router.push(`/credits-bundles/view/${id}`);
     };
 
@@ -47,11 +59,12 @@ const CreditsAndBundles = () => {
             if (data.success) {
                 setSessions(data.sessions || []);
                 setPackages(data.packages || []);
+                setMemberships(data.memberships || []);
             } else {
                 setError(data.error || "Failed to load programs");
             }
         } catch (error) {
-            console.error("Error fetching packages and sessions:", error);
+            console.error("Error fetching programs:", error);
             setError("An error occurred while loading programs");
         } finally {
             setLoading(false);
@@ -63,7 +76,7 @@ const CreditsAndBundles = () => {
     }, []);
     // Loading state
     if (loading) {
-        return <NormalLoader />;
+        return <NormalLoader text="Loading programs..." className="h-screen" />;
     }
 
     // Error state
@@ -98,7 +111,7 @@ const CreditsAndBundles = () => {
                 </div>
 
                 {/* No data state */}
-                {sessions.length === 0 && packages.length === 0 ? (
+                {sessions.length === 0 && packages.length === 0 && memberships.length === 0 ? (
                     <div className="text-center py-12">
                         <p className="text-muted-foreground text-lg">
                             No programs available at the moment.
@@ -141,7 +154,7 @@ const CreditsAndBundles = () => {
 
                             {/* Packages Section */}
                             {packages.length > 0 && (
-                                <div>
+                                <div className="mb-12">
                                     <h2 className="text-2xl font-bold mb-6">Package Deals</h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {packages.map((pkg) => (
@@ -169,6 +182,44 @@ const CreditsAndBundles = () => {
                                             />
                                         ))}
                                     </div>
+                            </div>
+                        )}
+
+                        {/* Memberships Section */}
+                        {memberships.length > 0 && (
+                            <div>
+                                <h2 className="text-2xl font-bold mb-6">Membership Plans</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {memberships.map((membership) => {
+                                        // Get the display price based on billing period
+                                        let displayPrice = "Contact for pricing";
+                                        if (membership.billingPeriod === 'Weekly' && membership.weeklyPrice) {
+                                            displayPrice = `$${membership.weeklyPrice}/week`;
+                                        } else if (membership.billingPeriod === 'Monthly' && membership.monthlyPrice) {
+                                            displayPrice = `$${membership.monthlyPrice}/month`;
+                                        } else if (membership.billingPeriod === 'Yearly' && membership.yearlyPrice) {
+                                            displayPrice = `$${membership.yearlyPrice}/year`;
+                                        }
+
+                                        return (
+                                            <BookingCard
+                                                key={membership.id}
+                                                title={membership.membershipName}
+                                                description={
+                                                    membership.membershipDescription ||
+                                                    "Get unlimited access with our membership plans."
+                                                }
+                                                price={displayPrice}
+                                                image="/images/card_image.jpg"
+                                                type="membership"
+                                                buttonText="Subscribe"
+                                                onBook={() =>
+                                                    handleBooking(membership.id, membership.membershipName, "membership")
+                                                }
+                                            />
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
                     </>

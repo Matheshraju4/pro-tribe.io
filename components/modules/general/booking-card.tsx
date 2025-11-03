@@ -12,7 +12,7 @@ interface BookingCardProps {
     image: string;
     onBook?: () => void;
     buttonText?: string;
-    type: "session" | "package";
+    type: "session" | "package" | "membership";
 }
 
 const BookingCard = ({
@@ -35,7 +35,12 @@ const BookingCard = ({
                         fill
                         className="object-cover"
                     />
-                    <Badge className={cn("absolute top-2 right-2", type === "session" ? "bg-green-600 text-white" : "bg-blue-500 text-white")}>
+                    <Badge className={cn(
+                        "absolute top-2 right-2",
+                        type === "session" && "bg-green-600 text-white",
+                        type === "package" && "bg-blue-500 text-white",
+                        type === "membership" && "bg-purple-600 text-white"
+                    )}>
                         {type}
                     </Badge>
                 </div>

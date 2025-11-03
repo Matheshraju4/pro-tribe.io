@@ -21,8 +21,8 @@ interface AppointmentData {
   status: "Scheduled" | "Cancelled" | "Completed";
   appointmentLocation: string;
   trainerId: string;
-  clientId: string;
-  sessionId: string;
+  clientId: string | null;
+  sessionId: string | null;
   createdAt: string;
   updatedAt: string;
   client: {
@@ -30,12 +30,12 @@ interface AppointmentData {
     firstName: string;
     lastName: string;
     email: string;
-  };
+  } | null;
   session: {
     id: string;
     sessionName: string;
     sessionDescription?: string;
-  };
+  } | null;
 }
 
 // Function to convert 12-hour time format to 24-hour format
@@ -58,7 +58,12 @@ const convertTo24Hour = (
 const transformAppointmentToEvent = (
   appointment: AppointmentData
 ): CalendarEvent => {
-  // Parse the appointment date
+  // Parse the appointment date - handle potential null/undefined
+  if (!appointment.appointmentDate || !appointment.startTime || !appointment.endTime) {
+    // If missing critical data, skip this appointment
+    throw new Error(`Appointment ${appointment.id} is missing required date/time information`);
+  }
+
   const appointmentDate = new Date(appointment.appointmentDate);
 
   // Convert start and end times to 24-hour format
@@ -86,18 +91,25 @@ const transformAppointmentToEvent = (
     return "amber";
   };
 
-  // Create client name for display
-  const clientName = `${appointment.client.firstName} ${appointment.client.lastName}`;
+  // Create client name for display (handle null client)
+  const clientName = appointment.client
+    ? `${appointment.client.firstName} ${appointment.client.lastName}`
+    : "Unknown Client";
 
-  // Create title with session name and client
-  const title = `${appointment.session.sessionName} - ${clientName}`;
+  // Create title - use session name if available, otherwise use appointment name
+  // This handles sessions, packages, and memberships
+  const serviceName = appointment.session?.sessionName || appointment.appointmentName;
+  const title = `${serviceName} - ${clientName}`;
+
+  // Get description from appointment or session
+  const description = appointment.appointmentDescription ||
+    appointment.session?.sessionDescription ||
+    appointment.appointmentName;
 
   return {
     id: appointment.id,
     title,
-    description:
-      appointment.appointmentDescription ||
-      appointment.session.sessionDescription,
+    description,
     start: startDate,
     end: endDate,
     allDay: false, // Always show specific times since we have start/end times
@@ -142,6 +154,7 @@ export default function Home() {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await fetch("/api/appointments");
 
       if (!response.ok) {
@@ -152,10 +165,25 @@ export default function Home() {
 
       if (data.success && data.appointments) {
         // Transform appointments to calendar events
-        const calendarEvents = data.appointments.map(
-          transformAppointmentToEvent
-        );
+        // Filter out any appointments that can't be transformed (missing critical data)
+        const calendarEvents = data.appointments
+          .map((appointment: AppointmentData) => {
+            try {
+              return transformAppointmentToEvent(appointment);
+            } catch (err) {
+              console.warn(`Skipping appointment ${appointment.id}:`, err);
+              return null;
+            }
+          })
+          .filter((event: CalendarEvent | null): event is CalendarEvent => event !== null);
+
         setEvents(calendarEvents);
+
+        // Log summary
+        if (calendarEvents.length < data.appointments.length) {
+          const skipped = data.appointments.length - calendarEvents.length;
+          console.warn(`${skipped} appointment(s) skipped due to missing data`);
+        }
       } else {
         throw new Error(data.error || "Failed to load appointments");
       }
