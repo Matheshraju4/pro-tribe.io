@@ -117,7 +117,7 @@ export async function PUT(
     let configuration = existingTracker.configuration;
     if (existingTracker.type === "numeric" && (validatedData.unit || validatedData.minValue !== undefined || validatedData.maxValue !== undefined)) {
       configuration = {
-        ...(typeof configuration === 'object' ? configuration : {}),
+        ...(typeof configuration === 'object' && configuration !== null ? configuration : {}),
         unit: validatedData.unit ?? (configuration as any)?.unit,
         minValue: validatedData.minValue ?? (configuration as any)?.minValue,
         maxValue: validatedData.maxValue ?? (configuration as any)?.maxValue,
@@ -125,20 +125,26 @@ export async function PUT(
     }
 
     // Update the tracker
+    const updateData: any = {
+      ...(validatedData.name && { name: validatedData.name }),
+      ...(validatedData.description !== undefined && { description: validatedData.description }),
+      ...(validatedData.unit && { unit: validatedData.unit }),
+      ...(validatedData.minValue !== undefined && { minValue: validatedData.minValue }),
+      ...(validatedData.maxValue !== undefined && { maxValue: validatedData.maxValue }),
+      ...(validatedData.trueLabel && { trueLabel: validatedData.trueLabel }),
+      ...(validatedData.falseLabel && { falseLabel: validatedData.falseLabel }),
+      ...(validatedData.ratingScale && { ratingScale: validatedData.ratingScale }),
+      ...(validatedData.isActive !== undefined && { isActive: validatedData.isActive }),
+    };
+
+    // Only include configuration if it was updated or is not null
+    if (configuration !== null && configuration !== undefined) {
+      updateData.configuration = configuration as any;
+    }
+
     const updatedTracker = await prisma.progressTracker.update({
       where: { id },
-      data: {
-        ...(validatedData.name && { name: validatedData.name }),
-        ...(validatedData.description !== undefined && { description: validatedData.description }),
-        ...(validatedData.unit && { unit: validatedData.unit }),
-        ...(validatedData.minValue !== undefined && { minValue: validatedData.minValue }),
-        ...(validatedData.maxValue !== undefined && { maxValue: validatedData.maxValue }),
-        ...(validatedData.trueLabel && { trueLabel: validatedData.trueLabel }),
-        ...(validatedData.falseLabel && { falseLabel: validatedData.falseLabel }),
-        ...(validatedData.ratingScale && { ratingScale: validatedData.ratingScale }),
-        ...(validatedData.isActive !== undefined && { isActive: validatedData.isActive }),
-        configuration,
-      },
+      data: updateData,
     });
 
     return NextResponse.json({
@@ -153,7 +159,7 @@ export async function PUT(
       return NextResponse.json(
         {
           error: "Validation error",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );

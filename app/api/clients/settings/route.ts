@@ -125,7 +125,7 @@ export async function PUT(request: NextRequest) {
         {
           success: false,
           error: "Validation error",
-          details: error.errors,
+          details: error.issues,
         },
         { status: 400 }
       );
