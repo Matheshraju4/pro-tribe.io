@@ -19,7 +19,7 @@ const updateTrackerSchema = z.object({
 // GET single tracker with details
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession(request);
@@ -28,9 +28,11 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     const tracker = await prisma.progressTracker.findFirst({
       where: {
-        id: params.id,
+        id,
         trainerId: session.data.userId,
       },
       include: {
@@ -83,7 +85,7 @@ export async function GET(
 // PUT/PATCH - Update tracker
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession(request);
@@ -92,13 +94,14 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const validatedData = updateTrackerSchema.parse(body);
 
     // Verify tracker belongs to this trainer
     const existingTracker = await prisma.progressTracker.findFirst({
       where: {
-        id: params.id,
+        id,
         trainerId: session.data.userId,
       },
     });
@@ -123,7 +126,7 @@ export async function PUT(
 
     // Update the tracker
     const updatedTracker = await prisma.progressTracker.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(validatedData.name && { name: validatedData.name }),
         ...(validatedData.description !== undefined && { description: validatedData.description }),
@@ -166,7 +169,7 @@ export async function PUT(
 // DELETE - Delete tracker
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession(request);
@@ -175,10 +178,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
+
     // Verify tracker belongs to this trainer
     const existingTracker = await prisma.progressTracker.findFirst({
       where: {
-        id: params.id,
+        id,
         trainerId: session.data.userId,
       },
     });
@@ -192,7 +197,7 @@ export async function DELETE(
 
     // Soft delete - set isActive to false
     await prisma.progressTracker.update({
-      where: { id: params.id },
+      where: { id },
       data: { isActive: false },
     });
 
